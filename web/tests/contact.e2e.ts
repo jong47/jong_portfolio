@@ -1,8 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import { APP_URL } from '../playwright.config'
 
-const INBOX = 'gradyjonathan55@gmail.com'
 const LINKS = 'nav[aria-label="Profile links"]'
+
+/** Any address at all, rather than one specific one — naming the real inbox in a
+ *  public repo would leak the exact thing this test asserts the page never shows. */
+const ANY_ADDRESS = /[\w.+-]+@[\w-]+\.[\w.]+/
 
 const DRAFT = {
     name: 'Dana',
@@ -42,7 +45,7 @@ test.describe('contact form', () => {
 
         const html = await page.content()
         expect(html).not.toContain('mailto:')
-        expect(html).not.toContain(INBOX)
+        expect(html).not.toMatch(ANY_ADDRESS)
     })
 
     test('contact is a button, the rest are plain links', async ({ page }) => {
