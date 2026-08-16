@@ -18,7 +18,8 @@ import {
     homeHref,
     parseRoute,
     projectsHref,
-    useHashRoute,
+    useRoute,
+    useRoutedLinks,
     type Detail,
 } from './lib/router'
 import { systemsForRole } from './lib/systems'
@@ -122,8 +123,22 @@ function DetailRoute({ detail }: { detail: Detail }) {
 }
 
 export default function App() {
-    const route = parseRoute(useHashRoute())
+    useRoutedLinks()
+
+    const route = parseRoute(useRoute())
     const active = useActiveSection(NAV_IDS, route.view === 'home')
+
+    if (route.view === 'missing') {
+        return (
+            <ToastProvider>
+                <DetailBar />
+                <div className="shell">
+                    <DetailNotFound />
+                    <Footer />
+                </div>
+            </ToastProvider>
+        )
+    }
 
     if (route.view === 'detail') {
         // A project's own page belongs behind the list it was reached from.

@@ -143,25 +143,68 @@ test.describe('routing', () => {
     })
 
     test('a project opens its own page and goes back to the list', async ({ page }) => {
-        await page.goto(`${APP_URL}/#/projects`, { waitUntil: 'networkidle' })
+        await page.goto(`${APP_URL}/projects`, { waitUntil: 'networkidle' })
 
         await page.click('.cat-title:has-text("OpenTelemetry")')
         await expect(page.locator('.article')).toBeVisible()
 
         await page.click('.topbar-link:has-text("back")')
-        await expect(page).toHaveURL(/#\/projects$/)
+        await expect(page).toHaveURL(/\/projects$/)
         await expect(page.locator('#projects .cat-list')).toBeVisible()
     })
 
+    test('a deep link loads straight into the page', async ({ page }) => {
+        await page.goto(`${APP_URL}/projects/portfolio`, { waitUntil: 'networkidle' })
+        await expect(page.locator('.article')).toBeVisible()
+        expect(new URL(page.url()).hash).toBe('')
+    })
+
+    test('back and forward move between pages', async ({ page }) => {
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        await page.click('.topbar-site a:has-text("projects")')
+        await expect(page).toHaveURL(/\/projects$/)
+
+        await page.goBack()
+        await expect(page.locator('#work')).toBeVisible()
+
+        await page.goForward()
+        await expect(page.locator('#projects .cat-list')).toBeVisible()
+    })
+
+    test('an unknown path is refused rather than rendering home', async ({ page }) => {
+        await page.goto(`${APP_URL}/not-a-page`, { waitUntil: 'networkidle' })
+        await expect(page.getByText(/doesn't exist/i)).toBeVisible()
+        await expect(page.locator('#work')).toHaveCount(0)
+    })
+
+    test('static assets and new-tab links are left to the browser', async ({ page }) => {
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        // The resume is a real file; routing it would swallow the download.
+        const resume = page.locator(`${LINKS} a:has-text("resume")`)
+        await expect(resume).toHaveAttribute('href', '/Jonathan_Ong_Resume.pdf')
+
+        await resume.click()
+        await page.waitForTimeout(300)
+
+        // The whole risk: if the delegated handler routed this, the current tab
+        // would be sitting on /Jonathan_Ong_Resume.pdf rendering the not-found
+        // view. Headless Chromium downloads the PDF rather than navigating the
+        // popup, so the popup's own URL is not worth asserting on.
+        expect(page.url().replace(/\/$/, '')).toBe(APP_URL)
+        await expect(page.locator('#work')).toBeVisible()
+    })
+
     test('an unknown project id does not blank the page', async ({ page }) => {
-        await page.goto(`${APP_URL}/#/projects/nope`, { waitUntil: 'networkidle' })
+        await page.goto(`${APP_URL}/projects/nope`, { waitUntil: 'networkidle' })
         await expect(page.getByText(/doesn't exist/i)).toBeVisible()
     })
 })
 
 test.describe('ordering', () => {
     test('projects run newest first and each states its kind', async ({ page }) => {
-        await page.goto(`${APP_URL}/#/projects`, { waitUntil: 'networkidle' })
+        await page.goto(`${APP_URL}/projects`, { waitUntil: 'networkidle' })
 
         const meta = await page.locator('#projects .cat-meta').allTextContents()
         expect(meta.length).toBeGreaterThan(1)
