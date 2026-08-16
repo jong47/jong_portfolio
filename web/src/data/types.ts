@@ -6,6 +6,11 @@ export type Link = {
     dialog?: boolean
 }
 
+/** The work-history ids systems.ts is allowed to point at. Renaming a role here
+ *  breaks both files until they agree, rather than leaving a section that quietly
+ *  renders empty. */
+export type RoleId = 'tra-senior-swe' | 'tra-swe'
+
 export type Entry = {
     id: string
     title: string
@@ -23,8 +28,12 @@ export type SystemSection = {
     body: string
 }
 
+export type Role = Entry & {
+    id: RoleId
+}
+
 export type System = Entry & {
-    roleIds: string[]
+    roleIds: RoleId[]
     summary: string
     sections?: SystemSection[]
     diagram?: 'document-routing' | 'session-rotation'

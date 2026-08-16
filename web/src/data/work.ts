@@ -1,9 +1,10 @@
-import type { Entry } from './types'
+import { newestFirst } from './order'
+import type { Role } from './types'
 
-export const work: Entry[] = [
+const entries: Role[] = [
     {
-        id: 'tra-ai-engineer',
-        title: 'AI Engineer',
+        id: 'tra-senior-swe',
+        title: 'Senior Software Engineer',
         meta: 'Tax Relief Advocates · Irvine, CA',
         period: '04/2026 — Present',
         bullets: [
@@ -15,8 +16,8 @@ export const work: Entry[] = [
         stack: ['Azure', 'Event-driven architecture', 'Docker', 'Kubernetes', 'CI/CD'],
     },
     {
-        id: 'tra-associate',
-        title: 'Associate AI Engineer',
+        id: 'tra-swe',
+        title: 'Software Engineer',
         meta: 'Tax Relief Advocates · Irvine, CA',
         period: '03/2025 — 04/2026',
         bullets: [
@@ -27,3 +28,5 @@ export const work: Entry[] = [
         stack: ['Azure', 'SQL optimization', 'REST APIs', 'Distributed systems'],
     },
 ]
+
+export const work = newestFirst(entries)

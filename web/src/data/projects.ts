@@ -1,7 +1,8 @@
 import prAgentArticle from '../content/oss-qodo-ai.md'
+import { newestFirst } from './order'
 import type { Project } from './types'
 
-export const projects: Project[] = [
+const entries: Project[] = [
     {
         id: 'layerskip',
         title: 'LayerSkip early-exit analysis',
@@ -37,7 +38,7 @@ export const projects: Project[] = [
         id: 'woolyquant',
         title: 'woolyquant',
         meta: 'Personal project',
-        period: '2023 — 24',
+        period: '2023',
         summary:
             'Stock analysis in Go that recommends strategies from market trends and the relationship between stock pairs.',
         detail: 'An AI-powered stock analysis tool that recommends trading strategies by analyzing market trends and the relationship between stock pairs.',
@@ -49,3 +50,5 @@ export const projects: Project[] = [
         },
     },
 ]
+
+export const projects = newestFirst(entries)

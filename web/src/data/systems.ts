@@ -1,9 +1,10 @@
+import { newestFirst } from './order'
 import type { System } from './types'
 
-export const systems: System[] = [
+const entries: System[] = [
     {
         id: 'document-platform',
-        roleIds: ['tra-associate', 'tra-ai-engineer'],
+        roleIds: ['tra-swe', 'tra-senior-swe'],
         title: 'Document Processing Platform',
         meta: 'Tax Relief Advocates',
         period: '2025 — 2026',
@@ -62,7 +63,7 @@ export const systems: System[] = [
     },
     {
         id: 'client-letter-platform',
-        roleIds: ['tra-associate'],
+        roleIds: ['tra-swe'],
         title: 'Automated Client-Letter Platform',
         meta: 'Tax Relief Advocates',
         period: '2025',
@@ -123,7 +124,7 @@ export const systems: System[] = [
     },
     {
         id: 'llm-gateway',
-        roleIds: ['tra-ai-engineer'],
+        roleIds: ['tra-senior-swe'],
         title: 'LLM Gateway',
         meta: 'Tax Relief Advocates',
         period: '2026',
@@ -155,7 +156,7 @@ export const systems: System[] = [
     },
     {
         id: 'lead-alerting',
-        roleIds: ['tra-ai-engineer'],
+        roleIds: ['tra-senior-swe'],
         title: 'Real-Time Lead Alerting',
         meta: 'Tax Relief Advocates',
         period: '2026',
@@ -184,7 +185,7 @@ export const systems: System[] = [
     },
     {
         id: 'fee-prediction',
-        roleIds: ['tra-ai-engineer'],
+        roleIds: ['tra-senior-swe'],
         title: 'Service-Fee Prediction Model',
         meta: 'Tax Relief Advocates',
         period: '2026',
@@ -207,3 +208,5 @@ export const systems: System[] = [
         ],
     },
 ]
+
+export const systems = newestFirst(entries)

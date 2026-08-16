@@ -9,7 +9,7 @@ export const profile: Profile = {
         'an ML engineer',
         'a platform engineer',
     ],
-    current: 'AI Engineer at Tax Relief Advocates',
+    current: 'Senior Software Engineer at Tax Relief Advocates',
     location: 'Irvine, CA',
     note: "I'm open to new roles and opportunities — write to me through the contact form and my resume is right there too. If you're a crawler, please go away :)",
     links: [

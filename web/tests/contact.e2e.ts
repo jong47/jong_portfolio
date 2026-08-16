@@ -133,6 +133,32 @@ test.describe('contact form', () => {
     })
 })
 
+test.describe('ordering', () => {
+    /** Reads the year off each row's meta line and asserts it never climbs. */
+    async function years(page: Page, section: string) {
+        const meta = await page.locator(`#${section} .cat-meta`).allTextContents()
+        return meta.map((line) =>
+            Math.max(...(line.match(/\d{4}/g) ?? ['0']).map(Number)),
+        )
+    }
+
+    test('projects run newest first', async ({ page }) => {
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        const found = await years(page, 'projects')
+        expect(found.length).toBeGreaterThan(1)
+        expect(found).toEqual([...found].sort((a, b) => b - a))
+    })
+
+    test('work runs newest first, current role on top', async ({ page }) => {
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        const periods = await page.locator('#work .entry-period').allTextContents()
+        expect(periods.length).toBeGreaterThan(1)
+        expect(periods[0]).toMatch(/present/i)
+    })
+})
+
 test.describe('layout', () => {
     test('the dialog fits a phone without causing overflow', async ({ page }) => {
         await page.setViewportSize({ width: 360, height: 720 })
