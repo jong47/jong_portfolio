@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { FAIL_URL, PASS_URL } from '../playwright.config'
+import { APP_URL } from '../playwright.config'
 
 const INBOX = 'gradyjonathan55@gmail.com'
 const LINKS = 'nav[aria-label="Profile links"]'
@@ -38,7 +38,7 @@ async function fill(page: Page) {
 
 test.describe('contact form', () => {
     test('the address is nowhere in the page', async ({ page }) => {
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
         const html = await page.content()
         expect(html).not.toContain('mailto:')
@@ -46,7 +46,7 @@ test.describe('contact form', () => {
     })
 
     test('contact is a button, the rest are plain links', async ({ page }) => {
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
         await expect(page.locator(`${LINKS} button`)).toHaveText(['contact'])
         await expect(page.locator(`${LINKS} a`)).toHaveText([
             'github',
@@ -56,20 +56,20 @@ test.describe('contact form', () => {
     })
 
     test('the resume is a static asset opened in a new tab', async ({ page }) => {
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
         const resume = page.locator(`${LINKS} a:has-text("resume")`)
         await expect(resume).toHaveAttribute('href', '/Jonathan_Ong_Resume.pdf')
         await expect(resume).toHaveAttribute('target', '_blank')
         await expect(resume).toHaveAttribute('rel', /noopener/)
 
-        const head = await page.request.get(`${PASS_URL}/Jonathan_Ong_Resume.pdf`)
+        const head = await page.request.get(`${APP_URL}/Jonathan_Ong_Resume.pdf`)
         expect(head.status()).toBe(200)
         expect(head.headers()['content-type']).toContain('pdf')
     })
 
     test('the dialog opens, traps escape, and closes', async ({ page }) => {
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
         await expect(page.locator('.dialog')).toBeHidden()
         await page.click(`${LINKS} button:has-text("contact")`)
@@ -82,9 +82,9 @@ test.describe('contact form', () => {
         await expect(dialog).toBeHidden()
     })
 
-    test('a verified message is sent and the dialog closes', async ({ page }) => {
+    test('a message is sent and the dialog closes', async ({ page }) => {
         const seen = await stubApi(page)
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
         await fill(page)
         await page.click('.dialog-send')
@@ -95,35 +95,23 @@ test.describe('contact form', () => {
         expect(seen).toHaveLength(1)
         expect(seen[0].route).toBe('/contact')
         expect(seen[0].body).toMatchObject(DRAFT)
-        expect(seen[0].body.token).toBeTruthy()
+        expect(seen[0].body).not.toHaveProperty('token')
     })
 
-    test('a failed check never reaches the api', async ({ page }) => {
+    test('an empty form never reaches the api', async ({ page }) => {
         const seen = await stubApi(page)
-        await page.goto(FAIL_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
-        await fill(page)
+        await page.click(`${LINKS} button:has-text("contact")`)
         await page.click('.dialog-send')
 
-        await expect(page.locator('.field-error')).toBeVisible()
-        expect(seen).toHaveLength(0)
         await expect(page.locator('.dialog')).toBeVisible()
+        expect(seen).toHaveLength(0)
     })
 
-    test('a refused message keeps the draft and says so', async ({ page }) => {
-        await stubApi(page, { status: 403 })
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
-
-        await fill(page)
-        await page.click('.dialog-send')
-
-        await expect(page.locator('.field-error')).toContainText('did not pass')
-        await expect(page.locator('.dialog textarea')).toHaveValue(DRAFT.message)
-    })
-
-    test('an api outage reports failure without leaking anything', async ({ page }) => {
+    test('an api outage keeps the draft and leaks nothing', async ({ page }) => {
         await stubApi(page, { status: 503 })
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
         await fill(page)
         await page.click('.dialog-send')
@@ -131,15 +119,13 @@ test.describe('contact form', () => {
         const error = page.locator('.field-error')
         await expect(error).toBeVisible()
         expect(await error.textContent()).not.toContain('@')
-    })
 
-    test('the verify overlay never swallows clicks at rest', async ({ page }) => {
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
-        await expect(page.locator('.verify-host')).toHaveCSS('pointer-events', 'none')
+        await expect(page.locator('.dialog')).toBeVisible()
+        await expect(page.locator('.dialog textarea')).toHaveValue(DRAFT.message)
     })
 
     test('the toast is announced to screen readers', async ({ page }) => {
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
         await expect(page.locator('.toast-host')).toHaveAttribute('aria-live', 'polite')
     })
 })
@@ -147,7 +133,7 @@ test.describe('contact form', () => {
 test.describe('layout', () => {
     test('the dialog fits a phone without causing overflow', async ({ page }) => {
         await page.setViewportSize({ width: 360, height: 720 })
-        await page.goto(PASS_URL, { waitUntil: 'networkidle' })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
 
         await page.click(`${LINKS} button:has-text("contact")`)
         await expect(page.locator('.dialog')).toBeVisible()

@@ -13,7 +13,6 @@ def origin() -> str:
 @pytest.fixture
 def settings(origin: str) -> Settings:
     return Settings(
-        turnstile_secret="secret",
         contact_email="inbox@example.com",
         ses_sender="site@example.com",
         allowed_origins=[origin],

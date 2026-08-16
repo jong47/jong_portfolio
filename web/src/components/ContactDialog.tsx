@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { contactEnabled, sendMessage, type Draft } from '../lib/contact'
 import { useToast } from '../lib/toast'
-import { useVerify } from '../lib/verify'
 
 const EMPTY: Draft = { name: '', email: '', message: '' }
 
 export function ContactDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-    const verify = useVerify()
     const notify = useToast()
     const first = useRef<HTMLInputElement>(null)
     const [draft, setDraft] = useState<Draft>(EMPTY)
@@ -39,14 +37,7 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
         setError(null)
 
         try {
-            const token = await verify()
-            if (!token) {
-                throw new Error(
-                    'That check did not pass. Try again, or reach me on LinkedIn.',
-                )
-            }
-
-            await sendMessage(draft, token)
+            await sendMessage(draft)
             setDraft(EMPTY)
             onClose()
             notify('message sent')
@@ -135,10 +126,7 @@ export function ContactDialog({ open, onClose }: { open: boolean; onClose: () =>
                         {busy ? 'sending…' : 'send'}
                     </button>
 
-                    <p className="dialog-note">
-                        Checked by Cloudflare Turnstile. Your address is only used to
-                        reply.
-                    </p>
+                    <p className="dialog-note">Your address is only used to reply.</p>
                 </form>
             </div>
         </div>

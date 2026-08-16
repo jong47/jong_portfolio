@@ -1,39 +1,44 @@
 # portfolio-api
 
-Holds the two things that must not ship to a browser — the email address and read
-access to the resume — and hands either one over only after a Turnstile token
-checks out.
+One route. It takes a contact-form message and mails it, so the destination address
+never has to exist in the frontend bundle.
 
 ```
-POST /email    -> { "value": "you@example.com" }
-POST /resume   -> { "value": "https://bucket.s3.../Resume.pdf?X-Amz-Signature=..." }
+POST /contact  ->  204 No Content
 ```
 
-Both POST routes take `{ "token": "<turnstile token>" }`. The resume link is
-presigned and expires in 60 seconds, so the S3 bucket stays private and a
-forwarded link is dead by the time anyone else opens it.
+```json
+{ "name": "Dana", "email": "dana@example.com", "message": "Are you free to talk?" }
+```
+
+The response has no body on purpose — there is nothing to return, and nothing to leak
+by accident. A test asserts the destination address appears in no response.
 
 ## Run it
 
 ```sh
-cp .env.example .env
-uv run serve          # http://localhost:8000, reloads on change
+cp .env.example .env.staging   # then fill it in
+uv run serve                   # http://localhost:8000, reloads on change
 uv run pytest
 uv run ruff check .
 ```
 
+`APP_ENV` picks the env file and defaults to `staging`, so config comes from
+`.env.staging` unless you set `APP_ENV=prod`. A plain `.env` is never read.
+
 ## Deploy
 
-Any Python host works — this is a plain ASGI app with no edge-runtime
-assumptions. Point `VITE_CONTACT_API_URL` in `web/.env.production` at it and set
-`ALLOWED_ORIGINS` to the live site origin.
+A plain ASGI app with no edge-runtime assumptions, so any Python host works. Point
+`VITE_CONTACT_API_URL` in `web/.env.prod` at it and set `ALLOWED_ORIGINS` to the live
+site origin.
 
 ```sh
 uv run uvicorn portfolio_api.main:create_app --factory --host 0.0.0.0 --port 8000
 ```
 
-The resume lives in a **private** bucket — not the one serving the site. Give the
-API an IAM identity with exactly one permission, so a leaked key reads one file:
+Mail goes out through SES. Both `SES_SENDER` and `CONTACT_EMAIL` must be verified
+identities while the account is in the SES sandbox, which also caps you at 200 messages
+a day. Give the API an identity with exactly one permission:
 
 ```json
 {
@@ -41,8 +46,8 @@ API an IAM identity with exactly one permission, so a leaked key reads one file:
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::jong-private/Jonathan_Ong_Resume.pdf"
+            "Action": "ses:SendEmail",
+            "Resource": "*"
         }
     ]
 }
@@ -50,16 +55,25 @@ API an IAM identity with exactly one permission, so a leaked key reads one file:
 
 ## Behaviour worth knowing
 
-- **Turnstile outage fails open.** If siteverify is unreachable, times out, or
-  answers 5xx, the request is served anyway — an outage on Cloudflare's side is
-  not the visitor's problem. A token siteverify actively *rejects* is still
-  refused.
-- **A missing token is refused.** The widget never ran, which is what a scraper
-  hitting the endpoint directly looks like.
-- **There is no fallback if the API is down.** Nothing on the page can stand in
-  for it, because the address and the signed URL only exist here. The GitHub and
-  LinkedIn links are the way through.
-- Presigned URLs are time-limited, not single-use. 60 seconds is the window, set
-  by `LINK_TTL`.
-- The dev secret accepts **any** token, so a rejected-token path cannot be
-  exercised locally. `uv run pytest` covers it against a mocked siteverify.
+- **The visitor's address is never the sender.** SES would reject sending as an
+  identity it has not verified, and it would be a spoof besides. Messages come from
+  `SES_SENDER` with the visitor in `Reply-To`, so replying from the inbox reaches them.
+- **The endpoint is open.** There is no captcha and no rate limit. That is a deliberate
+  choice for an undeployed personal site, not an oversight — see the note below.
+- **Unknown fields are ignored,** not rejected, so a stale frontend posting an extra
+  key does not turn every submit into a 422.
+- **Messages are capped** at 4000 characters by the model and truncated to
+  `MAX_MESSAGE` before sending.
+- **CORS is an allowlist.** `ALLOWED_ORIGINS` is comma-separated; an origin not on it
+  gets no `access-control-allow-origin` header back.
+
+### On the missing spam guard
+
+This route was behind a Cloudflare Turnstile check, which was removed along with the
+rest of the Cloudflare integration. The reasoning: the site is not deployed, the web
+app renders the form disabled unless `VITE_CONTACT_API_URL` is set, and SES sandbox
+limits cap the blast radius anyway.
+
+That reasoning expires at deploy time. Before pointing a public domain at this, put
+something in front of the route — a honeypot field is about ten lines and adds no
+service dependency; a rate limit at the edge is better if there is already an edge.

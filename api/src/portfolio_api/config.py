@@ -14,8 +14,6 @@ APP_ENV = os.getenv("APP_ENV", "staging")
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=f".env.{APP_ENV}", extra="ignore")
 
-    turnstile_secret: str
-
     # Where messages land, and the SES-verified identity they are sent from. In the
     # SES sandbox both must be verified, which is fine when they are the same person.
     contact_email: str = Field(min_length=1)

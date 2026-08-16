@@ -11,21 +11,25 @@ Two independent projects. Neither builds the other; the only coupling is
 ## Run both
 
 ```sh
-cd api && cp .env.example .env && uv run serve   # :8000
-cd web && npm install && npm run dev             # :5173
+cd api && cp .env.example .env.staging && uv run serve   # :8000
+cd web && npm install && npm run dev                     # :5173
 ```
 
-The email and resume links call the API — they do nothing without it running,
-which is deliberate. Neither value ships in the frontend bundle.
+The contact form posts to the API and renders disabled without it, which is
+deliberate — the destination address never ships in the frontend bundle. The
+resume is a static asset and the profile links are plain anchors, so those keep
+working whether or not the backend is up.
 
 ## Checks
 
 ```sh
-cd web && npm run check && npm run test && npm run test:e2e
+cd web && npm run check && npm run test:e2e
 cd api && uv run ruff check . && uv run pytest
 ```
 
 The browser suite stubs the API, so it needs no backend, no AWS, and no network.
+There are no unit tests in `web/` yet — `npm run test` is wired up but finds
+nothing, so it exits non-zero.
 
 ## Deploying
 

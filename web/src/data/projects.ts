@@ -1,28 +1,6 @@
-import portfolioArticle from '../content/portfolio.md'
 import type { Project } from './types'
 
 export const projects: Project[] = [
-    {
-        id: 'portfolio',
-        title: 'This site',
-        meta: 'Personal project',
-        period: '2026',
-        summary:
-            'I put a captcha on the wrong thing, measured what it was actually stopping, and moved it to the one path where bots really show up.',
-        detail: 'A portfolio that shows my email and resume to a person and neither to a crawler. Neither value ships to the browser — the page knows two route names, and a FastAPI service hands over the address or a 60-second signed S3 URL once a Turnstile token checks out server-side. The harder question was what happens when the check itself breaks, since a bot wall that goes down with Cloudflare takes my resume offline for exactly the hiring manager the site exists to reach.',
-        article: portfolioArticle,
-        stack: [
-            'React',
-            'TypeScript',
-            'Vite',
-            'Tailwind',
-            'FastAPI',
-            'Python',
-            'Cloudflare Turnstile',
-            'AWS S3',
-            'CloudFront',
-        ],
-    },
     {
         id: 'layerskip',
         title: 'LayerSkip early-exit analysis',

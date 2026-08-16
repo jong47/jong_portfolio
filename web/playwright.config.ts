@@ -1,14 +1,10 @@
 import { defineConfig } from '@playwright/test'
 
-/** Cloudflare dummy sitekeys. The app has no fallback, so tests set these explicitly. */
-const ALWAYS_PASSES = '1x00000000000000000000AA'
-const ALWAYS_FAILS = '2x00000000000000000000AB'
-
-/** Never called — every test stubs this origin. It only has to be set. */
+/** Never called — every test stubs this origin. It only has to be set, because
+ *  `contactEnabled` is what keeps the send button from rendering disabled. */
 const API = 'http://localhost:8000'
 
-export const PASS_URL = 'http://localhost:5174'
-export const FAIL_URL = 'http://localhost:5199'
+export const APP_URL = 'http://localhost:5174'
 
 export default defineConfig({
     testDir: './tests',
@@ -21,18 +17,10 @@ export default defineConfig({
         permissions: ['clipboard-read', 'clipboard-write'],
         trace: 'retain-on-failure',
     },
-    webServer: [
-        {
-            command: 'npx vp dev --port 5174',
-            url: PASS_URL,
-            env: { VITE_TURNSTILE_SITE_KEY: ALWAYS_PASSES, VITE_CONTACT_API_URL: API },
-            reuseExistingServer: !process.env.CI,
-        },
-        {
-            command: `npx vp dev --port 5199`,
-            url: FAIL_URL,
-            env: { VITE_TURNSTILE_SITE_KEY: ALWAYS_FAILS, VITE_CONTACT_API_URL: API },
-            reuseExistingServer: !process.env.CI,
-        },
-    ],
+    webServer: {
+        command: 'npx vp dev --port 5174',
+        url: APP_URL,
+        env: { VITE_CONTACT_API_URL: API },
+        reuseExistingServer: !process.env.CI,
+    },
 })

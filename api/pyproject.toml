@@ -10,7 +10,6 @@ requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.43.72",
     "fastapi>=0.141.1",
-    "httpx>=0.28.1",
     "pydantic-settings>=2.15.0",
     "pydantic[email]>=2.13.4",
     "uvicorn[standard]>=0.52.3",
@@ -25,9 +24,11 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    # Not imported by any test directly — starlette's TestClient requires it at
+    # import time, and neither fastapi nor starlette pulls it in transitively.
+    "httpx>=0.28.1",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "respx>=0.23.1",
     "ruff>=0.16.3",
 ]
 

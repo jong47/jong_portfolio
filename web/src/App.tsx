@@ -17,7 +17,6 @@ import { detailFromRoute, detailHref, useHashRoute, type Detail } from './lib/ro
 import { systemsForRole } from './lib/systems'
 import { ToastProvider } from './lib/toast'
 import { useActiveSection } from './lib/useActiveSection'
-import { VerifyProvider } from './lib/verify'
 
 const NAV: NavItem[] = [
     { id: 'about', label: 'about' },
@@ -120,15 +119,13 @@ export default function App() {
     const active = useActiveSection(NAV_IDS)
 
     return (
-        <VerifyProvider>
-            <ToastProvider>
-                {detail ? <DetailBar /> : <TopBar items={NAV} active={active} />}
-                <div className="shell">
-                    {detail ? <DetailRoute detail={detail} /> : <Home />}
-                    <Footer />
-                </div>
-                <ChatWidget />
-            </ToastProvider>
-        </VerifyProvider>
+        <ToastProvider>
+            {detail ? <DetailBar /> : <TopBar items={NAV} active={active} />}
+            <div className="shell">
+                {detail ? <DetailRoute detail={detail} /> : <Home />}
+                <Footer />
+            </div>
+            <ChatWidget />
+        </ToastProvider>
     )
 }
