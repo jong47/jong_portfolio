@@ -8,6 +8,7 @@ const THEMES = { light: 'github-light', dark: 'github-dark' } as const
 
 const LANGS = [
     'bash',
+    'diff',
     'python',
     'typescript',
     'tsx',

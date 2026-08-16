@@ -1,3 +1,4 @@
+import prAgentArticle from '../content/oss-qodo-ai.md'
 import type { Project } from './types'
 
 export const projects: Project[] = [
@@ -24,6 +25,7 @@ export const projects: Project[] = [
         summary:
             "OpenTelemetry instrumentation making an open-source agent's model spend visible per token, route, and completion.",
         detail: "A feature PR adding OpenTelemetry instrumentation for LiteLLM usage tracking — capturing token usage, model routing, and completion metrics so the agent's model spend is visible in monitoring tools like Datadog and Honeycomb.",
+        article: prAgentArticle,
         stack: ['Python', 'OpenTelemetry', 'LiteLLM'],
         link: {
             label: 'qodo-ai/pr-agent',
