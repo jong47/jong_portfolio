@@ -4,17 +4,23 @@ import { Entry } from './components/Entry'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { Outline } from './components/Outline'
+import { ProjectList } from './components/ProjectList'
 import { Section } from './components/Section'
 import { DetailNotFound, ProjectPage } from './components/ProjectPage'
 import { SystemPage } from './components/SystemPage'
-import { Timeline } from './components/Timeline'
 import { DetailBar, TopBar, type NavItem } from './components/TopBar'
 import { awards, certifications, education } from './data/about'
 import { projects } from './data/projects'
 import { systems } from './data/systems'
 import type { Credential } from './data/types'
 import { work } from './data/work'
-import { parseRoute, projectsHref, useHashRoute, type Detail } from './lib/router'
+import {
+    homeHref,
+    parseRoute,
+    projectsHref,
+    useHashRoute,
+    type Detail,
+} from './lib/router'
 import { systemsForRole } from './lib/systems'
 import { ToastProvider } from './lib/toast'
 import { useActiveSection } from './lib/useActiveSection'
@@ -99,7 +105,7 @@ function Projects() {
                     Open-source contributions, research, and things I built for myself,
                     newest first.
                 </p>
-                <Timeline items={projects} />
+                <ProjectList items={projects} />
             </Section>
         </main>
     )
@@ -117,11 +123,11 @@ function DetailRoute({ detail }: { detail: Detail }) {
 
 export default function App() {
     const route = parseRoute(useHashRoute())
-    const active = useActiveSection(NAV_IDS)
+    const active = useActiveSection(NAV_IDS, route.view === 'home')
 
     if (route.view === 'detail') {
         // A project's own page belongs behind the list it was reached from.
-        const backTo = route.detail.kind === 'projects' ? projectsHref : '#/'
+        const backTo = route.detail.kind === 'projects' ? projectsHref : homeHref
 
         return (
             <ToastProvider>

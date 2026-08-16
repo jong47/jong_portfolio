@@ -139,18 +139,18 @@ test.describe('routing', () => {
         await expect(page.locator('#projects')).toHaveCount(0)
 
         await page.click('.topbar-site a:has-text("projects")')
-        await expect(page.locator('#projects .timeline')).toBeVisible()
+        await expect(page.locator('#projects .cat-list')).toBeVisible()
     })
 
     test('a project opens its own page and goes back to the list', async ({ page }) => {
         await page.goto(`${APP_URL}/#/projects`, { waitUntil: 'networkidle' })
 
-        await page.click('.tl-title:has-text("OpenTelemetry")')
+        await page.click('.cat-title:has-text("OpenTelemetry")')
         await expect(page.locator('.article')).toBeVisible()
 
         await page.click('.topbar-link:has-text("back")')
         await expect(page).toHaveURL(/#\/projects$/)
-        await expect(page.locator('#projects .timeline')).toBeVisible()
+        await expect(page.locator('#projects .cat-list')).toBeVisible()
     })
 
     test('an unknown project id does not blank the page', async ({ page }) => {
@@ -160,18 +160,21 @@ test.describe('routing', () => {
 })
 
 test.describe('ordering', () => {
-    test('the timeline runs newest first and labels each year once', async ({ page }) => {
+    test('projects run newest first and each states its kind', async ({ page }) => {
         await page.goto(`${APP_URL}/#/projects`, { waitUntil: 'networkidle' })
 
-        const labels = (await page.locator('.tl-year').allTextContents())
-            .map((text) => text.trim())
-            .filter(Boolean)
+        const meta = await page.locator('#projects .cat-meta').allTextContents()
+        expect(meta.length).toBeGreaterThan(1)
 
-        expect(labels.length).toBeGreaterThan(1)
-        expect(labels).toEqual([...new Set(labels)])
-
-        const years = labels.map(Number)
+        const years = meta.map((line) =>
+            Math.max(...(line.match(/\d{4}/g) ?? ['0']).map(Number)),
+        )
         expect(years).toEqual([...years].sort((a, b) => b - a))
+
+        // The kind rides on the same meta line rather than being a second label.
+        for (const line of meta) {
+            expect(line).toMatch(/open source contribution|research|personal project/)
+        }
     })
 
     test('work runs newest first, current role on top', async ({ page }) => {
@@ -194,6 +197,27 @@ test.describe('outline', () => {
 
         await page.locator('.outline-link:has-text("certs")').click()
         await expect(page.locator('.outline-on')).toHaveText('certs')
+    })
+
+    test('keeps tracking after a round trip through another route', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        const activeAt = async (y: number) => {
+            await page.evaluate((to) => window.scrollTo(0, to), y)
+            await page.waitForTimeout(350)
+            return page.locator('.outline-on').textContent()
+        }
+
+        // Routing unmounts the sections. An observer left attached to the old
+        // nodes freezes on whatever was active when the page was left.
+        await page.click('.topbar-site a:has-text("projects")')
+        await expect(page.locator('.cat-list')).toBeVisible()
+        await page.click('.topbar-site a:has-text("home")')
+        await expect(page.locator('#work')).toBeVisible()
+
+        expect(await activeAt(0)).toBe('about')
+        expect(await activeAt(1200)).toBe('work')
     })
 
     test('gives way to the topbar links on a narrow viewport', async ({ page }) => {

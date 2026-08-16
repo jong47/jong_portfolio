@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react'
-import { projectsHref } from '../lib/router'
+import { homeHref, projectsHref } from '../lib/router'
 import { ThemeToggle } from './ThemeToggle'
 
 export type NavItem = {
@@ -8,7 +8,7 @@ export type NavItem = {
 }
 
 const SITE = [
-    { href: '#/', label: 'home' },
+    { href: homeHref, label: 'home' },
     { href: projectsHref, label: 'projects' },
 ]
 
@@ -83,7 +83,7 @@ export function TopBar({
     )
 }
 
-export function DetailBar({ backTo = '#/' }: { backTo?: string }) {
+export function DetailBar({ backTo = homeHref }: { backTo?: string }) {
     return (
         <div className="topbar">
             <div className="topbar-inner">

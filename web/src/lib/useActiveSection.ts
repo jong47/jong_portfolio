@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
 
-export function useActiveSection(ids: readonly string[]) {
+/**
+ * `enabled` is a dependency, not just a guard. Routing unmounts the sections, so
+ * an observer attached on the previous visit would hold detached nodes and freeze
+ * on whatever was last active. Toggling forces a fresh attach on the way back.
+ */
+export function useActiveSection(ids: readonly string[], enabled = true) {
     const [active, setActive] = useState(ids[0])
 
     useEffect(() => {
+        if (!enabled) return
+
         const seen = new Map<string, boolean>()
 
         function update() {
@@ -40,7 +47,7 @@ export function useActiveSection(ids: readonly string[]) {
             observer.disconnect()
             window.removeEventListener('scroll', update)
         }
-    }, [ids])
+    }, [ids, enabled])
 
     return active
 }

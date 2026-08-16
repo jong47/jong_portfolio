@@ -41,7 +41,7 @@ Harvesters do none of that. They fetch HTML and regex for `@`. They don't run JS
 
 The fix wasn't to delete the captcha. It was to point it at traffic that is genuinely automated and genuinely high volume: **form submissions.**
 
-The site now has no reveal endpoint at all. There is a contact form, and my address is never sent to the browser under any circumstance — not gated, not encoded, not fetched. It is a destination the server writes to, and the visitor never touches it:
+So the reveal endpoints went away entirely. In their place, a contact form — and my address is never sent to the browser under any circumstance — not gated, not encoded, not fetched. It is a destination the server writes to, and the visitor never touches it:
 
 ```python
 class Message(BaseModel):
@@ -60,7 +60,7 @@ async def contact(request: Request, body: Message) -> Response:
     return Response(status_code=204)
 ```
 
-The route returns `204`. There is no body, so there is nothing to leak even by accident — a test asserts the destination address appears nowhere in any response. Mail goes out through SES from a verified identity with the visitor's address in `Reply-To`, because sending _as_ them would be a spoof and SES would refuse it anyway.
+That is the version with the captcha still in it; hold that thought. The route returns `204`. There is no body, so there is nothing to leak even by accident — a test asserts the destination address appears nowhere in any response. Mail goes out through SES from a verified identity with the visitor's address in `Reply-To`, because sending _as_ them would be a spoof and SES would refuse it anyway.
 
 Contact-form spam is the case captchas were built for. Drive-by bots hit every form they can find, they submit constantly, and they cost real money when the form is wired to a mail service. That is a threat with volume behind it, unlike the email-reveal scraper I had been imagining.
 
@@ -101,24 +101,30 @@ The resume is a static asset now. No private bucket, no presigned URLs, no `boto
 
 This is a real concession and I want to be straight about it, because it's the one thing that got _less_ protected. A linked PDF at a stable URL is exactly what a crawler can fetch, which is the opposite of the POST-only JSON endpoint the argument above depends on. Everything I said about harvesters not synthesizing API calls stops applying the moment the thing is an `<a href>`.
 
-I decided it was worth it, for two reasons. The presigned-URL machinery was a meaningful chunk of the codebase — a boto3 client, a TTL, a signing module, credentials to rotate — protecting a document whose entire employment history is already public on LinkedIn. And the part I actually cared about wasn't the history, it was the phone number. So I took the phone number off the web copy. A resume that lives on a site with a contact form doesn't need one. The spam-call vector is gone and the machinery went with it.
+I decided it was worth it, for two reasons. The presigned-URL machinery was a meaningful chunk of the codebase — a boto3 client, a TTL, a signing module, credentials to rotate — protecting a document whose entire employment history is already public on LinkedIn. And the part I actually cared about wasn't the history, it was the phone number. So I took the phone number off the web copy. A resume that lives on a site with a contact form doesn't need one.
 
 There's a `robots.txt` disallow on the file, which stops the polite crawlers and precisely nothing else. I'm not counting it as security.
 
-## What this buys, and what it doesn't
+## And then I deleted that too
 
-**The address is unreachable.** Not gated, not obfuscated — absent. There is no request any client can make that returns it, because no endpoint returns it. This is strictly stronger than what I had before, where the whole design was a lock on a door that would eventually open.
+Everything above is what the code used to do. The captcha is gone now — not moved again, removed. No `turnstile.py`, no siteverify call, no widget in the bundle, no `TURNSTILE_SECRET`. `POST /contact` validates a body and sends mail.
 
-**Form spam has a real filter on it,** and it degrades in the safe direction.
+The honest reason is that I ran my own argument one step further than I had the first time. I had already established that the check was worth roughly nothing on the reveal path. On the contact form it is worth something real — but "something real" has to be weighed against what it costs, and I never did that arithmetic. The cost was a third-party dependency in the request path, a service account, a dashboard, a decision table, an availability question, and a dummy-sitekey fixture in the test harness. The benefit was spam filtering on a form that **has never received a single submission, because the site is not deployed.**
 
-**It does not stop a determined human** from emailing me through the form, which is fine, because that's what the form is for.
+I was buying insurance against a risk that does not exist yet, and paying for it in complexity I had to carry every time I touched the code.
 
-**It adds one availability dependency, and only to one path.** If Turnstile is down, the contact form refuses. Nothing else on the site notices — the resume is static and the profile links are anchors.
+So the endpoint is open. That is a decision with an expiry date, and I'd rather write the date down than pretend otherwise: before this points at a live domain, the form needs something in front of it. A honeypot field is about ten lines and adds no service dependency. A rate limit at the edge is better if there's already an edge. Either is a twenty-minute job at the point where it becomes necessary, which is exactly the point where I'll know which one fits.
+
+What made that reversible was the shape of the thing, not the thing itself. The gate was one function with one call site, so removing it was a deletion rather than a migration.
 
 ## The takeaway
 
-Two things worth stealing even if you never build a contact gate.
+Three things, and the third only became visible in hindsight.
 
-Build-time secrets in a frontend bundle are not secrets. If it ships to the browser it's public, and the only question is how long it takes someone to notice.
+**Build-time secrets in a frontend bundle are not secrets.** If it ships to the browser it's public, and the only question is how long it takes someone to notice. That one held through every version of this and is the only conclusion here I'd defend unchanged.
 
-And the one that cost me more to learn: before you add a check, write down what it stops that nothing else already stops. I wrote a careful decision table, a fail-open policy, and a set of tests around a control that was defending a door nobody was trying. The analysis was rigorous and the premise was never examined. Adding security is easy to feel good about, which is exactly why the useful discipline is measuring whether the thing you added is the thing doing the work.
+**Before you add a check, write down what it stops that nothing else already stops.** I wrote a careful decision table, a fail-open policy, and a set of tests around a control that was defending a door nobody was trying. The analysis was rigorous and the premise was never examined.
+
+**And then ask what it costs.** This is the one I missed twice. Moving the captcha somewhere it made sense felt like the correction, so I stopped there and shipped it. But a control that is worth _something_ is not automatically worth _keeping_ — it has to beat its own maintenance cost, against the actual risk, at the actual scale. Mine was defending an inbox that no one could reach yet.
+
+Security work is unusually easy to feel good about, which is exactly why it needs the same scrutiny as everything else you'd delete without a second thought.

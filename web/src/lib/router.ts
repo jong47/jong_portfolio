@@ -16,6 +16,7 @@ export type Route =
     | { view: 'projects' }
     | { view: 'detail'; detail: Detail }
 
+export const homeHref = '#'
 export const projectsHref = '#/projects'
 
 export function detailHref(kind: DetailKind, id: string) {
