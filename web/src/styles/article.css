@@ -1,0 +1,107 @@
+@layer components {
+    /* Selectors are zero-specificity so nothing here has to fight a utility class. */
+    .article :where(h1) {
+        @apply text-fg mt-2 text-[1.7rem] leading-tight font-semibold tracking-tight;
+    }
+
+    .article :where(h2) {
+        @apply text-fg border-border mt-12 border-t pt-6 text-[1.25rem] font-semibold;
+    }
+
+    .article :where(h3) {
+        @apply text-fg mt-8 text-[1.02rem] font-semibold;
+    }
+
+    .article :where(p) {
+        @apply text-fg-muted mt-4 text-[1rem] leading-[1.75];
+    }
+
+    .article :where(strong) {
+        @apply text-fg font-semibold;
+    }
+
+    .article :where(em) {
+        @apply italic;
+    }
+
+    .article :where(a) {
+        color: var(--accent);
+    }
+
+    .article :where(ul, ol) {
+        @apply mt-4 flex flex-col gap-2 pl-5;
+    }
+
+    .article :where(ul) {
+        @apply list-disc;
+    }
+
+    .article :where(ol) {
+        @apply list-decimal;
+    }
+
+    .article :where(li) {
+        @apply text-fg-muted text-[1rem] leading-[1.75];
+    }
+
+    .article :where(li)::marker {
+        color: var(--fg-subtle);
+    }
+
+    .article :where(code) {
+        @apply rounded-sm px-1 py-0.5 font-mono text-[0.85em];
+        background-color: var(--surface);
+        color: var(--fg);
+    }
+
+    .article :where(figure.code) {
+        @apply border-border mt-5 overflow-hidden rounded-sm border;
+        background-color: var(--surface);
+    }
+
+    .article :where(figure.code figcaption) {
+        @apply text-fg-subtle border-border border-b px-3 py-1.5 font-mono text-[0.7rem] tracking-[0.14em] uppercase;
+    }
+
+    .article :where(pre) {
+        @apply overflow-x-auto p-4;
+        background-color: transparent;
+    }
+
+    /* The figure already carries the surface and padding; the span inside must not. */
+    .article :where(pre code) {
+        @apply block bg-transparent p-0 text-[0.82rem] leading-[1.65];
+    }
+
+    /* Shiki emits both palettes per token, so the toggle needs no second render. */
+    .article :where(.shiki),
+    .article :where(.shiki span) {
+        color: var(--shiki-light);
+    }
+
+    :where(.dark) .article :where(.shiki),
+    :where(.dark) .article :where(.shiki span) {
+        color: var(--shiki-dark);
+    }
+
+    .article :where(table) {
+        @apply mt-5 w-full border-collapse text-left text-[0.9rem];
+    }
+
+    .article :where(th, td) {
+        @apply border-border border-b px-3 py-2.5 align-top;
+    }
+
+    .article :where(th) {
+        @apply text-fg-subtle font-mono text-[0.75rem] tracking-[0.12em] uppercase;
+    }
+
+    .article :where(td) {
+        @apply text-fg-muted leading-[1.6];
+    }
+
+    /* Tables are the one block that cannot reflow, so it scrolls rather than the page. */
+    .article-scroll {
+        @apply overflow-x-auto;
+    }
+}

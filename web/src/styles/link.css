@@ -1,0 +1,26 @@
+@layer components {
+    .link {
+        @apply text-fg-muted decoration-border hover:text-accent hover:decoration-accent underline underline-offset-4;
+    }
+
+    /* Header links: mono, no underline until hover */
+    .link-nav {
+        @apply text-fg-muted hover:text-accent font-mono text-xs no-underline;
+    }
+
+    /* A link rendered as a <button> because clicking it runs a check first. */
+    .link-button {
+        @apply cursor-pointer disabled:cursor-wait disabled:opacity-60;
+    }
+
+    /* Marks a link as leaving the site. Pseudo-element so the arrow never ends up
+     in copied text or read out by a screen reader. */
+    .link-ext::after {
+        content: ' ↗';
+        @apply text-fg-subtle text-[0.85em];
+    }
+
+    .link-ext:hover::after {
+        @apply text-accent;
+    }
+}

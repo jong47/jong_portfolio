@@ -1,0 +1,43 @@
+services:
+    api:
+        build: ./api
+        ports:
+            - '8000:8000'
+        # Must exist — create it with: cp api/.env.example api/.env.staging
+        env_file:
+            - ./api/.env.staging
+        environment:
+            ALLOWED_ORIGINS: http://localhost:5173
+        volumes:
+            - ./api/src:/app/src
+        command:
+            - uv
+            - run
+            - uvicorn
+            - portfolio_api.main:create_app
+            - --factory
+            - --host
+            - '0.0.0.0'
+            - --port
+            - '8000'
+            - --reload
+
+    web:
+        build: ./web
+        ports:
+            - '5173:5173'
+        environment:
+            # The browser makes this call, not the container — so it is the host's
+            # localhost, not the compose service name.
+            VITE_CONTACT_API_URL: http://localhost:8000
+        volumes:
+            # Only source is mounted, so the image's node_modules survives.
+            - ./web/src:/app/src
+            - ./web/public:/app/public
+            - ./web/index.html:/app/index.html
+            # Vite restarts itself on a config change, but only if it can see it.
+            - ./web/vite.config.ts:/app/vite.config.ts
+            # .dockerignore keeps this out of the image on purpose, so mount it.
+            - ./web/.env.staging:/app/.env.staging
+        depends_on:
+            - api

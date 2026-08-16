@@ -1,0 +1,48 @@
+@layer base {
+    html {
+        background-color: var(--bg);
+        color: var(--fg);
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        background-color: var(--bg);
+        color: var(--fg);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection {
+        background-color: var(--accent);
+        color: var(--bg);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 2px;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        *,
+        ::before,
+        ::after {
+            transition-property:
+                color, background-color, border-color, outline-color,
+                text-decoration-color;
+            transition-duration: 150ms;
+            transition-timing-function: ease;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        ::before,
+        ::after {
+            transition-duration: 0.01ms !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}

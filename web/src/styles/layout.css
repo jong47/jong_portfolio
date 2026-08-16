@@ -1,0 +1,110 @@
+@layer components {
+    .shell {
+        @apply mx-auto w-full max-w-[70ch] px-6 pt-[7vh] pb-24;
+    }
+
+    .section {
+        @apply mt-14;
+        scroll-margin-top: 4.5rem;
+    }
+
+    #about {
+        scroll-margin-top: 4.5rem;
+    }
+
+    .section-head {
+        @apply border-border mb-1 flex items-baseline justify-between gap-4 border-b pb-2;
+    }
+
+    .stack {
+        @apply flex flex-col;
+    }
+
+    .row {
+        @apply flex flex-wrap items-center gap-x-4 gap-y-2;
+    }
+
+    .icon-button {
+        @apply text-fg-subtle -m-2 shrink-0 cursor-pointer p-2 text-base leading-none;
+    }
+
+    .icon-button:hover {
+        color: var(--accent);
+    }
+
+    .cred-detail {
+        @apply text-fg-muted mt-1 text-[1rem];
+    }
+
+    .cred-note {
+        @apply text-fg-subtle mt-1.5 text-[0.9rem] leading-relaxed;
+    }
+
+    .metrics {
+        @apply mt-6 flex flex-col gap-1.5;
+    }
+
+    .metric {
+        @apply text-fg-muted font-mono text-[0.85rem];
+    }
+
+    .prose-block {
+        @apply mt-8;
+    }
+
+    .footer {
+        @apply border-border mt-20 flex flex-col gap-1 border-t pt-6;
+    }
+
+    .footer-flavor {
+        @apply text-fg-subtle mt-2 text-[0.9rem] italic;
+    }
+}
+
+@media (max-width: 480px) {
+    .shell {
+        padding-top: 8vh;
+    }
+}
+
+/* The only min-width breakpoint in the project. Below it everything stays in the
+   single fluid column it was built as; above it there is 700px+ of dead gutter,
+   so the period moves out of the content measure and into a rail the eye can
+   scan down without reading. */
+@media (min-width: 1024px) {
+    /* The rail lives in extra left padding rather than a wider shell, so the prose
+       measure stays exactly what it was — widening the column would trade vertical
+       density for lines too long to read. */
+    .shell,
+    .topbar-inner {
+        max-width: calc(70ch + var(--rail) + var(--rail-gap));
+        padding-left: calc(1.5rem + var(--rail) + var(--rail-gap));
+    }
+
+    .entry {
+        display: grid;
+        grid-template-columns: var(--rail) 1fr;
+        column-gap: var(--rail-gap);
+        margin-left: calc(-1 * (var(--rail) + var(--rail-gap)));
+    }
+
+    .entry > * {
+        grid-column: 2;
+    }
+
+    .entry .entry-head {
+        display: contents;
+    }
+
+    .entry .entry-period {
+        grid-column: 1;
+        grid-row: 1;
+        margin-top: 0;
+        text-align: right;
+    }
+
+    .entry .entry-title {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}

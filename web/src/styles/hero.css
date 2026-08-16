@@ -1,0 +1,46 @@
+@keyframes caret-blink {
+    0%,
+    45% {
+        opacity: 1;
+    }
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+
+@layer components {
+    .roles {
+        @apply text-fg-muted mt-2 text-[1.25rem] leading-snug;
+        /* Holds the line while the phrase is mid-erase, so nothing below shifts. */
+        min-height: 1.6em;
+        /* The phrase changes width constantly; keep that off the page's layout. */
+        contain: layout;
+    }
+
+    .roles-word {
+        @apply text-fg font-medium;
+    }
+
+    .roles-caret {
+        @apply ml-[2px] inline-block h-[1.05em] w-[2px] translate-y-[0.16em];
+        background-color: var(--accent);
+        animation: caret-blink 1.1s steps(1) infinite;
+        /* Own layer, so the one thing that animates forever never repaints the header. */
+        will-change: opacity;
+    }
+
+    .hero-now {
+        @apply text-fg-muted;
+    }
+
+    .hero-note {
+        @apply text-fg-subtle text-[0.95rem] leading-relaxed;
+    }
+}
+
+@media (max-width: 480px) {
+    .roles {
+        font-size: 1.1rem;
+    }
+}

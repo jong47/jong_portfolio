@@ -1,0 +1,39 @@
+{
+    "name": "jong-portfolio",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vp dev --mode staging",
+        "build": "vp build --mode prod",
+        "build:staging": "vp build --mode staging",
+        "preview": "vp preview",
+        "check": "vp check",
+        "lint": "vp lint",
+        "format": "vp fmt",
+        "test": "vp test",
+        "test:e2e": "playwright test"
+    },
+    "dependencies": {
+        "@marsidev/react-turnstile": "^1.6.0",
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.62.1",
+        "@tailwindcss/vite": "^4.2.5",
+        "@types/node": "^24.13.3",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^6.0.4",
+        "marked": "^18.0.9",
+        "shiki": "^4.4.3",
+        "tailwindcss": "^4.2.5",
+        "typescript": "~6.0.2",
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9",
+        "vite-plus": "0.2.9"
+    },
+    "overrides": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9"
+    }
+}

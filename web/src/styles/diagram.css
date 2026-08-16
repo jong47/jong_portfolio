@@ -1,0 +1,63 @@
+@layer components {
+    .diagram {
+        @apply border-border mt-8 overflow-x-auto border-y py-6;
+    }
+
+    .diagram-svg {
+        @apply block h-auto w-full;
+        min-width: 34rem;
+    }
+
+    .diagram-caption {
+        @apply text-fg-subtle mt-4 text-[0.85rem] leading-relaxed;
+    }
+
+    .dg-box {
+        fill: none;
+        stroke: var(--border-strong);
+        stroke-width: 1;
+    }
+
+    .dg-cheap {
+        stroke: var(--accent);
+    }
+
+    .dg-costly {
+        stroke: var(--fg-subtle);
+        stroke-dasharray: 3 2;
+    }
+
+    .dg-line {
+        stroke: var(--border-strong);
+        stroke-width: 1;
+    }
+
+    .dg-dashed {
+        stroke-dasharray: 3 3;
+    }
+
+    .dg-arrow {
+        fill: var(--border-strong);
+    }
+
+    .dg-label {
+        fill: var(--fg);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-anchor: middle;
+    }
+
+    .dg-sub {
+        fill: var(--fg-subtle);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        text-anchor: middle;
+    }
+
+    .dg-edge {
+        fill: var(--fg-subtle);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        text-anchor: middle;
+    }
+}

@@ -1,0 +1,9 @@
+@layer components {
+    .tag-row {
+        @apply mt-3.5 flex flex-wrap gap-x-1.5 gap-y-1.5;
+    }
+
+    .tag {
+        @apply text-fg-subtle border-border rounded-sm border px-1.5 py-0.5 font-mono text-[0.7rem] leading-normal;
+    }
+}

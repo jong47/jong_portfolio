@@ -1,0 +1,83 @@
+@keyframes dialog-in {
+    from {
+        opacity: 0;
+        translate: 0 6px;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+@layer components {
+    .dialog-host {
+        @apply fixed inset-0 z-80 flex items-center justify-center p-6;
+    }
+
+    /* A button rather than a div so dismissing by clicking away is reachable
+       without a mouse, and announced rather than invisible to assistive tech. */
+    .dialog-scrim {
+        @apply absolute inset-0 cursor-default;
+        background-color: rgb(0 0 0 / 0.45);
+    }
+
+    .dialog {
+        @apply border-border relative flex w-full max-w-[26rem] flex-col border p-5;
+        background-color: var(--bg);
+        box-shadow: var(--shadow-lg);
+        animation: dialog-in 160ms ease-out;
+    }
+
+    .dialog-head {
+        @apply mb-4 flex items-center justify-between;
+    }
+
+    .dialog-form {
+        @apply flex flex-col gap-3.5;
+    }
+
+    .field {
+        @apply flex flex-col gap-1.5;
+    }
+
+    .field-label {
+        @apply text-fg-subtle font-mono text-[0.7rem] tracking-[0.14em] uppercase;
+    }
+
+    .field-input {
+        @apply border-border text-fg w-full border px-2.5 py-2 text-[0.95rem];
+        background-color: var(--surface);
+    }
+
+    .field-input:focus {
+        border-color: var(--accent);
+        outline: none;
+    }
+
+    .field-area {
+        @apply resize-y leading-relaxed;
+    }
+
+    .field-error {
+        @apply text-[0.85rem];
+        color: var(--accent);
+    }
+
+    .dialog-send {
+        @apply border-border mt-1 cursor-pointer border px-3 py-2 font-mono text-[0.78rem] tracking-[0.1em] uppercase;
+        color: var(--bg);
+        background-color: var(--fg);
+    }
+
+    .dialog-send:hover:not(:disabled) {
+        background-color: var(--accent);
+    }
+
+    .dialog-send:disabled {
+        @apply cursor-wait opacity-60;
+    }
+
+    .dialog-note {
+        @apply text-fg-subtle text-[0.75rem] leading-relaxed;
+    }
+}

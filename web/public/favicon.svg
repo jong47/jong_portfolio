@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    rect { fill: #fbfbfa }
+    text { fill: #1c1917 }
+    @media (prefers-color-scheme: dark) {
+      rect { fill: #0c0c0b }
+      text { fill: #eae8e3 }
+    }
+  </style>
+  <rect width="32" height="32" rx="7"/>
+  <text x="16" y="23" text-anchor="middle" font-size="19" font-weight="600"
+        font-family="ui-monospace, SFMono-Regular, Menlo, monospace">jo</text>
+</svg>

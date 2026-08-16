@@ -1,0 +1,2 @@
+User-agent: *
+Disallow: /Jonathan_Ong_Resume.pdf

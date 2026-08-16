@@ -1,0 +1,31 @@
+@layer components {
+    .topbar {
+        @apply border-border sticky top-0 z-40 border-b;
+        background-color: var(--bg);
+    }
+
+    .topbar-inner {
+        @apply mx-auto flex w-full max-w-[70ch] items-center justify-between gap-5 px-6 py-3;
+    }
+
+    .topbar-nav {
+        @apply flex min-w-0 gap-4 overflow-x-auto;
+        scrollbar-width: none;
+    }
+
+    .topbar-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .topbar-link {
+        @apply text-fg-subtle font-mono text-[0.78rem] whitespace-nowrap no-underline;
+    }
+
+    .topbar-link:hover {
+        color: var(--accent);
+    }
+
+    .topbar-on {
+        color: var(--fg);
+    }
+}
