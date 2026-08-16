@@ -9,7 +9,15 @@ export type Link = {
 /** The work-history ids systems.ts is allowed to point at. Renaming a role here
  *  breaks both files until they agree, rather than leaving a section that quietly
  *  renders empty. */
-export type RoleId = 'tra-senior-swe' | 'tra-swe'
+export type RoleId =
+    | 'tra-senior-swe'
+    | 'tra-swe'
+    | 'fdb-ai-intern'
+    | 'king-features-ba-intern'
+    | 'csuf-research-assistant'
+    | 'biscuit-beacon-swe-intern'
+    | 'briviant-it-support'
+    | 'socccd-lab-tutor'
 
 export type Entry = {
     id: string
@@ -39,7 +47,11 @@ export type System = Entry & {
     diagram?: 'document-routing' | 'session-rotation'
 }
 
+/** What the timeline labels each row with. */
+export type ProjectKind = 'oss' | 'research' | 'personal'
+
 export type Project = Entry & {
+    kind: ProjectKind
     /** One line for the landing card; `detail` is kept for the project's own route. */
     summary: string
     /** Compiled from src/content/<id>.md at build time. */

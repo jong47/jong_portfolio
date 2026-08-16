@@ -133,21 +133,45 @@ test.describe('contact form', () => {
     })
 })
 
-test.describe('ordering', () => {
-    /** Reads the year off each row's meta line and asserts it never climbs. */
-    async function years(page: Page, section: string) {
-        const meta = await page.locator(`#${section} .cat-meta`).allTextContents()
-        return meta.map((line) =>
-            Math.max(...(line.match(/\d{4}/g) ?? ['0']).map(Number)),
-        )
-    }
-
-    test('projects run newest first', async ({ page }) => {
+test.describe('routing', () => {
+    test('projects live on their own route, not the landing page', async ({ page }) => {
         await page.goto(APP_URL, { waitUntil: 'networkidle' })
+        await expect(page.locator('#projects')).toHaveCount(0)
 
-        const found = await years(page, 'projects')
-        expect(found.length).toBeGreaterThan(1)
-        expect(found).toEqual([...found].sort((a, b) => b - a))
+        await page.click('.topbar-site a:has-text("projects")')
+        await expect(page.locator('#projects .timeline')).toBeVisible()
+    })
+
+    test('a project opens its own page and goes back to the list', async ({ page }) => {
+        await page.goto(`${APP_URL}/#/projects`, { waitUntil: 'networkidle' })
+
+        await page.click('.tl-title:has-text("OpenTelemetry")')
+        await expect(page.locator('.article')).toBeVisible()
+
+        await page.click('.topbar-link:has-text("back")')
+        await expect(page).toHaveURL(/#\/projects$/)
+        await expect(page.locator('#projects .timeline')).toBeVisible()
+    })
+
+    test('an unknown project id does not blank the page', async ({ page }) => {
+        await page.goto(`${APP_URL}/#/projects/nope`, { waitUntil: 'networkidle' })
+        await expect(page.getByText(/doesn't exist/i)).toBeVisible()
+    })
+})
+
+test.describe('ordering', () => {
+    test('the timeline runs newest first and labels each year once', async ({ page }) => {
+        await page.goto(`${APP_URL}/#/projects`, { waitUntil: 'networkidle' })
+
+        const labels = (await page.locator('.tl-year').allTextContents())
+            .map((text) => text.trim())
+            .filter(Boolean)
+
+        expect(labels.length).toBeGreaterThan(1)
+        expect(labels).toEqual([...new Set(labels)])
+
+        const years = labels.map(Number)
+        expect(years).toEqual([...years].sort((a, b) => b - a))
     })
 
     test('work runs newest first, current role on top', async ({ page }) => {
@@ -156,6 +180,28 @@ test.describe('ordering', () => {
         const periods = await page.locator('#work .entry-period').allTextContents()
         expect(periods.length).toBeGreaterThan(1)
         expect(periods[0]).toMatch(/present/i)
+    })
+})
+
+test.describe('outline', () => {
+    test('tracks the active section on a wide viewport', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        const outline = page.locator('.outline')
+        await expect(outline).toBeVisible()
+        await expect(page.locator('.topbar-sections')).toBeHidden()
+
+        await page.locator('.outline-link:has-text("certs")').click()
+        await expect(page.locator('.outline-on')).toHaveText('certs')
+    })
+
+    test('gives way to the topbar links on a narrow viewport', async ({ page }) => {
+        await page.setViewportSize({ width: 900, height: 800 })
+        await page.goto(APP_URL, { waitUntil: 'networkidle' })
+
+        await expect(page.locator('.outline')).toBeHidden()
+        await expect(page.locator('.topbar-sections')).toBeVisible()
     })
 })
 

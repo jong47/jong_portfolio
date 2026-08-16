@@ -1,19 +1,20 @@
 import { BuiltList } from './components/BuiltList'
-import { Catalogue } from './components/Catalogue'
 import { ChatWidget } from './components/ChatWidget'
 import { Entry } from './components/Entry'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
+import { Outline } from './components/Outline'
 import { Section } from './components/Section'
 import { DetailNotFound, ProjectPage } from './components/ProjectPage'
 import { SystemPage } from './components/SystemPage'
+import { Timeline } from './components/Timeline'
 import { DetailBar, TopBar, type NavItem } from './components/TopBar'
 import { awards, certifications, education } from './data/about'
 import { projects } from './data/projects'
 import { systems } from './data/systems'
 import type { Credential } from './data/types'
 import { work } from './data/work'
-import { detailFromRoute, detailHref, useHashRoute, type Detail } from './lib/router'
+import { parseRoute, projectsHref, useHashRoute, type Detail } from './lib/router'
 import { systemsForRole } from './lib/systems'
 import { ToastProvider } from './lib/toast'
 import { useActiveSection } from './lib/useActiveSection'
@@ -21,7 +22,6 @@ import { useActiveSection } from './lib/useActiveSection'
 const NAV: NavItem[] = [
     { id: 'about', label: 'about' },
     { id: 'work', label: 'work' },
-    { id: 'projects', label: 'projects' },
     { id: 'education', label: 'education' },
     { id: 'certs', label: 'certs' },
 ]
@@ -63,18 +63,6 @@ function Home() {
                     </ul>
                 </Section>
 
-                <Section id="projects" title="Projects & Research">
-                    <Catalogue
-                        items={projects.map((item) => ({
-                            id: item.id,
-                            title: item.title,
-                            summary: item.summary,
-                            meta: [item.meta, item.period].filter(Boolean).join(' · '),
-                            href: detailHref('projects', item.id),
-                        }))}
-                    />
-                </Section>
-
                 <Section id="education" title="Education">
                     <CredentialList items={education} />
                 </Section>
@@ -103,6 +91,20 @@ function Home() {
     )
 }
 
+function Projects() {
+    return (
+        <main>
+            <Section id="projects" title="Projects & Research">
+                <p className="section-lede">
+                    Open-source contributions, research, and things I built for myself,
+                    newest first.
+                </p>
+                <Timeline items={projects} />
+            </Section>
+        </main>
+    )
+}
+
 function DetailRoute({ detail }: { detail: Detail }) {
     if (detail.kind === 'projects') {
         const project = projects.find((item) => item.id === detail.id)
@@ -114,15 +116,37 @@ function DetailRoute({ detail }: { detail: Detail }) {
 }
 
 export default function App() {
-    const route = useHashRoute()
-    const detail = detailFromRoute(route)
+    const route = parseRoute(useHashRoute())
     const active = useActiveSection(NAV_IDS)
+
+    if (route.view === 'detail') {
+        // A project's own page belongs behind the list it was reached from.
+        const backTo = route.detail.kind === 'projects' ? projectsHref : '#/'
+
+        return (
+            <ToastProvider>
+                <DetailBar backTo={backTo} />
+                <div className="shell">
+                    <DetailRoute detail={route.detail} />
+                    <Footer />
+                </div>
+                <ChatWidget />
+            </ToastProvider>
+        )
+    }
+
+    const home = route.view === 'home'
 
     return (
         <ToastProvider>
-            {detail ? <DetailBar /> : <TopBar items={NAV} active={active} />}
+            <TopBar
+                current={home ? 'home' : 'projects'}
+                sections={home ? NAV : undefined}
+                active={active}
+            />
+            {home ? <Outline items={NAV} active={active} /> : null}
             <div className="shell">
-                {detail ? <DetailRoute detail={detail} /> : <Home />}
+                {home ? <Home /> : <Projects />}
                 <Footer />
             </div>
             <ChatWidget />

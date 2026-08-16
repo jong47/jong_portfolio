@@ -3,11 +3,11 @@ import type { Profile } from './types'
 export const profile: Profile = {
     name: 'Jonathan Ong',
     roles: [
-        'a software engineer',
-        'a data engineer',
-        'an AI engineer',
-        'an ML engineer',
-        'a platform engineer',
+        'a software engineer.',
+        'a data engineer.',
+        'an AI engineer.',
+        'an ML engineer.',
+        'a platform engineer.',
     ],
     current: 'Senior Software Engineer at Tax Relief Advocates',
     location: 'Irvine, CA',

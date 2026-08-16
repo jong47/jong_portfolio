@@ -8,12 +8,18 @@
         @apply mx-auto flex w-full max-w-[70ch] items-center justify-between gap-5 px-6 py-3;
     }
 
-    .topbar-nav {
-        @apply flex min-w-0 gap-4 overflow-x-auto;
+    .topbar-site {
+        @apply flex shrink-0 gap-4;
+    }
+
+    /* Separates page navigation from in-page jumps, which are two different
+       kinds of link sitting on one line. */
+    .topbar-sections {
+        @apply border-border flex min-w-0 gap-4 overflow-x-auto border-l pl-4;
         scrollbar-width: none;
     }
 
-    .topbar-nav::-webkit-scrollbar {
+    .topbar-sections::-webkit-scrollbar {
         display: none;
     }
 
@@ -27,5 +33,12 @@
 
     .topbar-on {
         color: var(--fg);
+    }
+}
+
+/* Outline takes over the section links where there is gutter to hold it. */
+@media (min-width: 1280px) {
+    .topbar-sections {
+        display: none;
     }
 }

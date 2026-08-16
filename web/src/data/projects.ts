@@ -5,6 +5,7 @@ import type { Project } from './types'
 const entries: Project[] = [
     {
         id: 'layerskip',
+        kind: 'research',
         title: 'LayerSkip early-exit analysis',
         meta: 'Georgia Institute of Technology · with Mostafa Elhoushi, Meta AI',
         period: '2024',
@@ -20,6 +21,7 @@ const entries: Project[] = [
     },
     {
         id: 'pr-agent-otel',
+        kind: 'oss',
         title: 'OpenTelemetry for LiteLLM usage tracking',
         meta: 'qodo-ai/pr-agent · open source',
         period: '2026',
@@ -36,6 +38,7 @@ const entries: Project[] = [
     },
     {
         id: 'woolyquant',
+        kind: 'personal',
         title: 'woolyquant',
         meta: 'Personal project',
         period: '2023',

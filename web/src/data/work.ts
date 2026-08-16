@@ -27,6 +27,67 @@ const entries: Role[] = [
         ],
         stack: ['Azure', 'SQL optimization', 'REST APIs', 'Distributed systems'],
     },
+    {
+        id: 'fdb-ai-intern',
+        title: 'AI Engineer Intern',
+        meta: 'First Databank · Remote',
+        period: '06/2024 — 08/2024',
+        bullets: [
+            'Built a RAG prototype on Azure GPT-4o over HIPAA-governed case study data, and fine-tuned a GPT-4o bot for case study content generation.',
+            'Worked with stakeholder groups to design a framework for candidate identification and engagement in the case study process.',
+        ],
+        stack: ['Python', 'Azure OpenAI', 'Amazon Bedrock', 'RAG'],
+    },
+    {
+        id: 'king-features-ba-intern',
+        title: 'Business Analyst Intern',
+        meta: 'King Features, a unit of Hearst · Remote',
+        period: '06/2024 — 08/2024',
+        bullets: [
+            'Ran a competitive landscape analysis identifying new revenue streams, and built data-driven expansion strategies covering market growth and app development, aligned to existing company strengths.',
+        ],
+        stack: ['Competitive analysis', 'KPIs'],
+    },
+    {
+        id: 'csuf-research-assistant',
+        title: 'Undergraduate Research Assistant',
+        meta: 'California State University, Fullerton · Hybrid',
+        period: '08/2023 — 12/2023',
+        bullets: ['Worked on the 3D printing team under Dr. Yu Bai.'],
+        stack: ['Python', 'NumPy'],
+    },
+    {
+        id: 'biscuit-beacon-swe-intern',
+        title: 'Software Engineer Intern',
+        meta: 'Biscuit Beacon · Remote',
+        period: '08/2023 — 11/2023',
+        bullets: [
+            'Dev lead for the website team — set coding standards, converted the product backlog into feature-driven tasks, and worked directly with stakeholders.',
+        ],
+        stack: ['React', 'Software development'],
+    },
+    {
+        id: 'briviant-it-support',
+        title: 'IT Support Engineer',
+        meta: 'Briviant · Irvine, CA',
+        period: '10/2021 — 06/2022',
+        bullets: [
+            'Raised team efficiency 30% writing BASH tooling that automated internal hard-disk verification for critical system updates and streamlined user verification during a migration project.',
+            'Triaged and resolved end-user issues across physical and virtual macOS machines, including RDP connection faults and OS-level restrictions.',
+            'Deployed and acceptance-tested macOS and VMware ESXi Mac Minis shipped to domestic and international data centres, and owned the system and network documentation for new server builds.',
+        ],
+        stack: ['macOS', 'BASH', 'VMware ESXi', 'Networking'],
+    },
+    {
+        id: 'socccd-lab-tutor',
+        title: 'Lab Tutor',
+        meta: 'South Orange County Community College District · Irvine, CA',
+        period: '08/2018 — 03/2020',
+        bullets: [
+            'Taught software engineering practice and object-oriented design in C++, and tutored data structures and algorithms in Python and C++ including Big-O analysis of run time and space.',
+        ],
+        stack: ['C++', 'Python', 'Algorithms'],
+    },
 ]
 
 export const work = newestFirst(entries)

@@ -1,0 +1,61 @@
+@layer components {
+    /* Below 1280px there is no gutter to put this in, and the topbar shows the
+       same links, so it is simply absent rather than reflowed. */
+    .outline {
+        @apply hidden;
+    }
+
+    .outline-list {
+        @apply flex flex-col gap-2;
+    }
+
+    .outline-link {
+        @apply text-fg-subtle relative block py-0.5 pl-4 font-mono text-[0.75rem] no-underline;
+        opacity: 0.55;
+        transition:
+            opacity 120ms ease,
+            color 120ms ease;
+    }
+
+    /* A tick that fills in on the active section — cheaper to read at a glance
+       than a colour change alone, and it survives a monochrome screenshot. */
+    .outline-link::before {
+        @apply absolute top-1/2 left-0 h-px w-2 -translate-y-1/2;
+        content: '';
+        background-color: currentColor;
+        opacity: 0.5;
+    }
+
+    .outline:hover .outline-link {
+        opacity: 0.9;
+    }
+
+    .outline-link:hover {
+        color: var(--accent);
+        opacity: 1;
+    }
+
+    .outline-on {
+        @apply text-fg;
+        opacity: 1;
+    }
+
+    .outline-on::before {
+        @apply w-3.5;
+        background-color: var(--accent);
+        opacity: 1;
+    }
+}
+
+@media (min-width: 1280px) {
+    .outline {
+        @apply fixed top-1/2 left-6 z-30 block -translate-y-1/2;
+        max-width: 9rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .outline-link {
+        transition: none;
+    }
+}
