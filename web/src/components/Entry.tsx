@@ -34,10 +34,14 @@ export function Entry({ entry, extra }: Props) {
 
             {entry.stack?.length ? <TagRow items={entry.stack} /> : null}
 
-            {entry.link ? (
-                <p className="mt-4">
-                    <Anchor link={entry.link} className="link t-mono" />
-                </p>
+            {entry.links?.length ? (
+                <ul className="detail-links">
+                    {entry.links.map((link) => (
+                        <li key={link.href}>
+                            <Anchor link={link} className="link t-mono" />
+                        </li>
+                    ))}
+                </ul>
             ) : null}
         </li>
     )

@@ -7,6 +7,10 @@
         @apply text-fg-subtle font-mono text-[0.8rem] tracking-[0.16em] uppercase;
     }
 
+    .t-deck {
+        @apply text-fg-muted mt-4 text-[1.1rem] leading-relaxed;
+    }
+
     .t-body {
         @apply text-fg-muted text-[1.05rem] leading-relaxed;
     }

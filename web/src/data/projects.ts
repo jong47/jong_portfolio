@@ -1,4 +1,4 @@
-import prAgentArticle from '../content/oss-qodo-ai.md'
+import prAgentOtelArticle from '../content/pr-agent-otel.md'
 import portfolioArticle from '../content/portfolio.md'
 import { newestFirst } from './order'
 import type { Project } from './types'
@@ -24,11 +24,13 @@ const entries: Project[] = [
             'AWS SES',
             'Playwright',
         ],
-        link: {
-            label: 'jong47/jong_portfolio',
-            href: 'https://github.com/jong47/jong_portfolio',
-            external: true,
-        },
+        links: [
+            {
+                label: 'jong47/jong_portfolio',
+                href: 'https://github.com/jong47/jong_portfolio',
+                external: true,
+            },
+        ],
     },
     {
         id: 'layerskip',
@@ -40,11 +42,13 @@ const entries: Project[] = [
             'Whether mid-layer token switching is real instability or an artefact of the top-k window — the signal early-exit decisions depend on.',
         detail: 'Per-token early exit in Llama LayerSkip models, on a team led by Mostafa Elhoushi — first author of the LayerSkip paper. LayerSkip trains with layer dropout and a shared early-exit loss so a model can exit at an early layer and self-speculatively verify with the remaining ones, reaching 1.82× to 2.16× speedups on summarization, coding, and semantic parsing. Our work tracked layer-wise token prediction via top-k entropy, testing whether mid-layer token switching reflects genuine token instability or merely candidate removal from the top-k set. Early-exit strategies key off exactly that signal to decide when a token has settled enough to stop computing — read it wrong and you exit on a token that was still moving.',
         stack: ['Python', 'PyTorch', 'Torchvision', 'HuggingFace', 'NumPy', 'Jupyter'],
-        link: {
-            label: 'arXiv:2404.16710 — LayerSkip',
-            href: 'https://arxiv.org/abs/2404.16710',
-            external: true,
-        },
+        links: [
+            {
+                label: 'arXiv:2404.16710 — LayerSkip',
+                href: 'https://arxiv.org/abs/2404.16710',
+                external: true,
+            },
+        ],
     },
     {
         id: 'pr-agent-otel',
@@ -55,13 +59,15 @@ const entries: Project[] = [
         summary:
             "OpenTelemetry instrumentation making an open-source agent's model spend visible per token, route, and completion.",
         detail: "A feature PR adding OpenTelemetry instrumentation for LiteLLM usage tracking — capturing token usage, model routing, and completion metrics so the agent's model spend is visible in monitoring tools like Datadog and Honeycomb.",
-        article: prAgentArticle,
+        article: prAgentOtelArticle,
         stack: ['Python', 'OpenTelemetry', 'LiteLLM'],
-        link: {
-            label: 'qodo-ai/pr-agent',
-            href: 'https://github.com/qodo-ai/pr-agent',
-            external: true,
-        },
+        links: [
+            {
+                label: 'qodo-ai/pr-agent',
+                href: 'https://github.com/qodo-ai/pr-agent',
+                external: true,
+            },
+        ],
     },
     {
         id: 'woolyquant',
@@ -72,11 +78,13 @@ const entries: Project[] = [
             'Stock analysis in Go that recommends strategies from market trends and the relationship between stock pairs.',
         detail: 'An AI-powered stock analysis tool that recommends trading strategies by analyzing market trends and the relationship between stock pairs.',
         stack: ['Go'],
-        link: {
-            label: 'jong47/woolyquant',
-            href: 'https://github.com/jong47/woolyquant',
-            external: true,
-        },
+        links: [
+            {
+                label: 'jong47/woolyquant',
+                href: 'https://github.com/jong47/woolyquant',
+                external: true,
+            },
+        ],
     },
 ]
 

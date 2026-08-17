@@ -202,6 +202,108 @@ test.describe('routing', () => {
     })
 })
 
+const DETAIL_ROUTES = [
+    '/projects/portfolio',
+    '/projects/pr-agent-otel',
+    '/projects/layerskip',
+    '/projects/woolyquant',
+    '/systems/document-platform',
+    '/systems/client-letter-platform',
+    '/systems/llm-gateway',
+    '/systems/lead-alerting',
+    '/systems/fee-prediction',
+]
+
+test.describe('detail pages', () => {
+    test('every detail page is built the same way', async ({ page }) => {
+        const shapes = new Set<string>()
+
+        for (const route of DETAIL_ROUTES) {
+            await page.goto(APP_URL + route, { waitUntil: 'networkidle' })
+
+            const shape = await page.evaluate(() =>
+                [...document.querySelectorAll('.shell article > *')]
+                    .map((el) =>
+                        el.tagName === 'H1'
+                            ? 'title'
+                            : (el.className.match(
+                                  /t-meta|t-deck|detail-links|tag-row|metrics|article|t-body/,
+                              )?.[0] ?? el.tagName.toLowerCase()),
+                    )
+                    .join(' '),
+            )
+
+            // The header is fixed; only optional blocks may be absent, and the body
+            // slot is either compiled markdown or the plain detail paragraph.
+            expect(shape, route).toMatch(/^t-meta title t-deck/)
+            shapes.add(
+                shape
+                    .replace(/ (detail-links|metrics)/g, '')
+                    .replace(/t-body$/, 'article'),
+            )
+        }
+
+        expect([...shapes]).toHaveLength(1)
+    })
+
+    test('the title is never rendered twice', async ({ page }) => {
+        for (const route of DETAIL_ROUTES) {
+            await page.goto(APP_URL + route, { waitUntil: 'networkidle' })
+            await expect(page.locator('h1'), route).toHaveCount(1)
+            await expect(page.locator('.article h1'), route).toHaveCount(0)
+        }
+    })
+
+    test('nothing inside the page draws a rule except the footer', async ({ page }) => {
+        for (const route of ['/', '/projects', '/projects/portfolio']) {
+            await page.goto(APP_URL + route, { waitUntil: 'networkidle' })
+
+            const ruled = await page.evaluate(() => {
+                const framed = /figure|figcaption|tag|field-input|dialog|chat|footer/i
+                return [...document.querySelectorAll('.shell *')]
+                    .filter((el) => {
+                        const style = getComputedStyle(el)
+                        const drawn = [
+                            style.borderTopWidth,
+                            style.borderRightWidth,
+                            style.borderBottomWidth,
+                            style.borderLeftWidth,
+                        ].some((width) => parseFloat(width) > 0)
+                        return (
+                            drawn &&
+                            !framed.test(el.className) &&
+                            !framed.test(el.tagName) &&
+                            !['TH', 'TD'].includes(el.tagName)
+                        )
+                    })
+                    .map((el) => `${el.tagName}.${el.className}`)
+            })
+
+            expect(ruled, route).toEqual([])
+        }
+    })
+
+    test('the inlined diagrams survive markdown intact', async ({ page }) => {
+        await page.goto(`${APP_URL}/systems/document-platform`, {
+            waitUntil: 'networkidle',
+        })
+
+        // A blank line inside the HTML block would end it early and leave the
+        // shapes stranded in sibling paragraphs.
+        await expect(page.locator('.article .diagram svg .dg-box').first()).toBeAttached()
+        await expect(page.locator('.article > p > rect')).toHaveCount(0)
+        await expect(page.locator('.diagram-caption')).toBeVisible()
+    })
+
+    test('back works from the not-found page', async ({ page }) => {
+        await page.goto(`${APP_URL}/no-such-page`, { waitUntil: 'networkidle' })
+
+        await page.click('.link-nav')
+        await expect(page).toHaveURL(new RegExp(`${APP_URL}/?$`))
+        await expect(page.locator('#work')).toBeVisible()
+    })
+})
+
 test.describe('ordering', () => {
     test('projects run newest first and each states its kind', async ({ page }) => {
         await page.goto(`${APP_URL}/projects`, { waitUntil: 'networkidle' })

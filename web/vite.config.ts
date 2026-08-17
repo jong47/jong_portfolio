@@ -27,9 +27,29 @@ function highlighter() {
     return pending
 }
 
-function render(source: string, shiki: Highlighter) {
+/** Anything the browser can already resolve on its own is left alone. */
+const EXTERNAL = /^(https?:)?\/\/|^data:|^\//
+
+/** NUL cannot appear in rendered HTML, so a slot marker can never collide with content. */
+const SLOT = /\0(\d+)\0/
+
+const escapeAttr = (value: string) =>
+    value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+
+function render(source: string, shiki: Highlighter, assets: string[]) {
     const md = new Marked({
         renderer: {
+            // A relative src becomes a real import, so Vite hashes the file and fails the
+            // build on a typo. Left as a plain string it would resolve against the page
+            // URL -- /systems/<id>/x.png -- and 404 in production, silently.
+            image({ href, text, title }) {
+                if (EXTERNAL.test(href)) return false
+
+                const slot = assets.push(href) - 1
+                const caption = title ? ` title="${escapeAttr(title)}"` : ''
+                return `<img src="\0${slot}\0" alt="${escapeAttr(text)}"${caption}>`
+            },
+
             code({ text, lang }) {
                 const language = (lang ?? '').trim().toLowerCase() || 'text'
                 const known = shiki.getLoadedLanguages().includes(language)
@@ -60,12 +80,35 @@ function markdown(): Plugin {
         enforce: 'pre',
         async transform(code, id) {
             if (!id.endsWith('.md')) return null
+
+            // Files keep their own H1 so the raw markdown reads as a document on its
+            // own, but the page renders the title from data — where the catalogue
+            // pages already need it — so the heading is dropped here.
+            const source = code.replace(/^#\s+.+\r?\n+/, '')
+
+            const assets: string[] = []
             // A table is the one block that cannot reflow on a phone, so it gets a
             // scrolling parent instead of pushing the whole page sideways.
-            const html = render(code, await highlighter())
+            const html = render(source, await highlighter(), assets)
                 .replaceAll('<table>', '<div class="article-scroll"><table>')
                 .replaceAll('</table>', '</table></div>')
-            return { code: `export default ${JSON.stringify(html)}`, map: null }
+
+            if (assets.length === 0) {
+                return { code: `export default ${JSON.stringify(html)}`, map: null }
+            }
+
+            // Splitting on the slot markers interleaves the literal chunks with the
+            // imported URLs, so the asset graph gets real edges and Vite handles
+            // hashing, the inline-limit and dev serving exactly as it would anywhere.
+            const imports = assets.map(
+                (href, index) => `import a${index} from ${JSON.stringify(href)}`,
+            )
+            const body = html
+                .split(SLOT)
+                .map((part, index) => (index % 2 ? `a${part}` : JSON.stringify(part)))
+                .join(' + ')
+
+            return { code: `${imports.join('\n')}\nexport default ${body}`, map: null }
         },
     }
 }

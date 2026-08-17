@@ -2,7 +2,7 @@ import type { Project } from '../data/types'
 import { detailHref } from '../lib/router'
 import { Catalogue } from './Catalogue'
 
-const KIND_LABEL: Record<Project['kind'], string> = {
+export const KIND_LABEL: Record<Project['kind'], string> = {
     oss: 'open source contribution',
     research: 'research',
     personal: 'personal project',

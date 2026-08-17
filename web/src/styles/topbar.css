@@ -12,10 +12,10 @@
         @apply flex shrink-0 gap-4;
     }
 
-    /* Separates page navigation from in-page jumps, which are two different
-       kinds of link sitting on one line. */
+    /* Set apart from page navigation by space alone — the two are different kinds
+       of link, but a rule between them is more noise than the distinction is worth. */
     .topbar-sections {
-        @apply border-border flex min-w-0 gap-4 overflow-x-auto border-l pl-4;
+        @apply ml-2 flex min-w-0 gap-4 overflow-x-auto;
         scrollbar-width: none;
     }
 

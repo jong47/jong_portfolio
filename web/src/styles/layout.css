@@ -13,7 +13,7 @@
     }
 
     .section-head {
-        @apply border-border mb-1 flex items-baseline justify-between gap-4 border-b pb-2;
+        @apply mb-4 flex items-baseline justify-between gap-4;
     }
 
     .stack {

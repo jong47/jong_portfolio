@@ -1,6 +1,6 @@
 @layer components {
     .diagram {
-        @apply border-border mt-8 overflow-x-auto border-y py-6;
+        @apply mt-10 overflow-x-auto py-2;
     }
 
     .diagram-svg {

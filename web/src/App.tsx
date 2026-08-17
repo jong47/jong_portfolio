@@ -4,10 +4,10 @@ import { Entry } from './components/Entry'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { Outline } from './components/Outline'
-import { ProjectList } from './components/ProjectList'
+import { KIND_LABEL as PROJECT_KIND, ProjectList } from './components/ProjectList'
 import { Section } from './components/Section'
-import { DetailNotFound, ProjectPage } from './components/ProjectPage'
-import { SystemPage } from './components/SystemPage'
+import { DetailPage } from './components/DetailPage'
+import { NotFound } from './components/NotFound'
 import { DetailBar, TopBar, type NavItem } from './components/TopBar'
 import { awards, certifications, education } from './data/about'
 import { projects } from './data/projects'
@@ -115,11 +115,15 @@ function Projects() {
 function DetailRoute({ detail }: { detail: Detail }) {
     if (detail.kind === 'projects') {
         const project = projects.find((item) => item.id === detail.id)
-        return project ? <ProjectPage project={project} /> : <DetailNotFound />
+        return project ? (
+            <DetailPage entry={project} kind={PROJECT_KIND[project.kind]} />
+        ) : (
+            <NotFound />
+        )
     }
 
     const system = systems.find((item) => item.id === detail.id)
-    return system ? <SystemPage system={system} /> : <DetailNotFound />
+    return system ? <DetailPage entry={system} kind="system" /> : <NotFound />
 }
 
 export default function App() {
@@ -133,7 +137,7 @@ export default function App() {
             <ToastProvider>
                 <DetailBar />
                 <div className="shell">
-                    <DetailNotFound />
+                    <NotFound />
                     <Footer />
                 </div>
             </ToastProvider>

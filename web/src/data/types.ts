@@ -28,12 +28,7 @@ export type Entry = {
     detail?: string
     bullets?: string[]
     stack?: string[]
-    link?: Link
-}
-
-export type SystemSection = {
-    heading: string
-    body: string
+    links?: Link[]
 }
 
 export type Role = Entry & {
@@ -43,8 +38,8 @@ export type Role = Entry & {
 export type System = Entry & {
     roleIds: RoleId[]
     summary: string
-    sections?: SystemSection[]
-    diagram?: 'document-routing' | 'session-rotation'
+    /** Compiled from src/content/<id>.md at build time. */
+    article?: string
 }
 
 /** What the timeline labels each row with. */
