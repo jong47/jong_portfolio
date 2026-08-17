@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     # Long enough to say something real, short enough to bound an abusive payload.
     max_message: int = 4000
 
+    # A question longer than this is not a question.
+    max_query: int = 1000
+    # Requests per window, per client. Held in one process — see SlidingWindow.
+    chat_rate_limit: int = 10
+    chat_rate_window: int = 60
+
     @field_validator("allowed_origins", mode="before")
     @classmethod
     def split_csv(cls, value: str | list[str]) -> list[str]:
