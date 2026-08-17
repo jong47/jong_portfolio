@@ -89,6 +89,7 @@ Documents are classified on arrival. Well-formed ones route to asynchronous rege
 </svg>
 <figcaption class="diagram-caption">Well-formed documents take the deterministic path. Only the exceptions reach a model.</figcaption>
 </figure>
+
 ## Result
 
 Inference cost fell 80% at unchanged volume, and the deterministic path is more accurate than the model path on the documents it handles, because regex does not hallucinate a field that was never there. This is the work behind my promotion to AI Engineer.

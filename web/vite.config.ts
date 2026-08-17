@@ -36,6 +36,12 @@ const SLOT = /\0(\d+)\0/
 const escapeAttr = (value: string) =>
     value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
+const slug = (text: string) =>
+    text
+        .toLowerCase()
+        .replace(/[^\w]+/g, '-')
+        .replace(/^-|-$/g, '')
+
 function render(source: string, shiki: Highlighter, assets: string[]) {
     const md = new Marked({
         renderer: {
@@ -48,6 +54,13 @@ function render(source: string, shiki: Highlighter, assets: string[]) {
                 const slot = assets.push(href) - 1
                 const caption = title ? ` title="${escapeAttr(title)}"` : ''
                 return `<img src="\0${slot}\0" alt="${escapeAttr(text)}"${caption}>`
+            },
+
+            // Only h2 is anchored, because only h2 is what the page outline tracks.
+            heading({ tokens, depth }) {
+                const html = this.parser.parseInline(tokens)
+                if (depth !== 2) return `<h${depth}>${html}</h${depth}>`
+                return `<h2 id="${slug(html.replace(/<[^>]+>/g, ''))}">${html}</h2>`
             },
 
             code({ text, lang }) {

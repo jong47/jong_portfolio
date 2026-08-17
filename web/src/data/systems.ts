@@ -16,11 +16,6 @@ const entries: System[] = [
         period: '2025 — 2026',
         summary:
             'Extraction over 1000-page tax documents, re-platformed onto Azure for compliance, then made 80% cheaper by keeping most of it away from a model.',
-        metrics: [
-            '80% OCR + LLM cost reduction',
-            '100K+ pages/week',
-            '700–1000+ pages per document',
-        ],
         stack: [
             'Dagster',
             'Celery',
@@ -45,12 +40,6 @@ const entries: System[] = [
         period: '2025',
         summary:
             'Letter generation against a legacy CRM with no modern API surface, and the concurrency problem underneath it.',
-        metrics: [
-            '2–5 min → 5–40 s per letter',
-            '12× throughput',
-            '~$80K/yr saved',
-            '5,000+ case backlog cleared',
-        ],
         stack: [
             'Python',
             'Celery',
@@ -75,7 +64,6 @@ const entries: System[] = [
         meta: 'Tax Relief Advocates',
         period: '2026',
         summary: 'One front door to every model, replacing per-application integrations.',
-        metrics: ['10+ internal applications'],
         stack: [
             'LiteLLM',
             'Azure AI Foundry',
@@ -95,7 +83,6 @@ const entries: System[] = [
         period: '2026',
         summary:
             'Desktop alerts on the sales floor within two seconds of lead assignment.',
-        metrics: ['< 2 s p95 from assignment to alert'],
         stack: [
             'Azure Service Bus',
             'Microsoft Graph',
@@ -114,7 +101,6 @@ const entries: System[] = [
         meta: 'Tax Relief Advocates',
         period: '2026',
         summary: 'Replacing manual fee estimation at first client contact.',
-        metrics: ['10,000+ cases trained on', '~80% within 10% of actual'],
         stack: ['Python', 'SQL', 'Supervised regression'],
     },
 ]

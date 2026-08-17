@@ -3,6 +3,12 @@
         @apply text-fg text-[1.7rem] font-semibold tracking-tight;
     }
 
+    /* An article title carries a page on its own, so it sits a step above the
+       hero name rather than matching it. */
+    .t-title {
+        @apply text-fg text-[2rem] leading-[1.15] font-semibold tracking-tight;
+    }
+
     .t-section {
         @apply text-fg-subtle font-mono text-[0.8rem] tracking-[0.16em] uppercase;
     }

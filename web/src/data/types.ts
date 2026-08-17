@@ -24,7 +24,6 @@ export type Entry = {
     title: string
     meta?: string
     period: string
-    metrics?: string[]
     detail?: string
     bullets?: string[]
     stack?: string[]

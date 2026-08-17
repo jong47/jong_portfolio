@@ -4,12 +4,19 @@
         @apply text-fg mt-2 text-[1.7rem] leading-tight font-semibold tracking-tight;
     }
 
+    /* Larger than the gap between sections, so the header block reads as the
+       page's front matter rather than as one more section of the article. */
+    .article {
+        @apply mt-20;
+    }
+
     .article :where(h2) {
-        @apply text-fg mt-16 text-[1.25rem] font-semibold;
+        @apply text-fg mt-14 text-[1.45rem] leading-tight font-semibold;
+        scroll-margin-top: 4.5rem;
     }
 
     .article :where(h3) {
-        @apply text-fg mt-8 text-[1.02rem] font-semibold;
+        @apply text-fg mt-8 text-[1.15rem] font-semibold;
     }
 
     .article :where(img) {
@@ -23,7 +30,17 @@
     }
 
     .article :where(p) {
-        @apply text-fg-muted mt-4 text-[1rem] leading-[1.75];
+        @apply text-fg-muted mt-5 text-[1.0625rem] leading-[1.7];
+    }
+
+    /* No rule down the side — separators belong at the page edges. A quote is
+       set apart by indent, size and full-strength colour instead. */
+    .article :where(blockquote) {
+        @apply text-fg my-8 pl-5 text-[1.15rem] leading-relaxed;
+    }
+
+    .article :where(blockquote p) {
+        @apply text-fg mt-0 text-[1.15rem];
     }
 
     .article :where(strong) {
@@ -51,15 +68,17 @@
     }
 
     .article :where(li) {
-        @apply text-fg-muted text-[1rem] leading-[1.75];
+        @apply text-fg-muted text-[1.0625rem] leading-[1.7];
     }
 
     .article :where(li)::marker {
         color: var(--fg-subtle);
     }
 
+    /* A long identifier has no break opportunity of its own, so on a phone it
+       pushes the whole page sideways unless it is allowed to split. */
     .article :where(code) {
-        @apply rounded-sm px-1 py-0.5 font-mono text-[0.85em];
+        @apply rounded-sm px-1 py-0.5 font-mono text-[0.85em] break-words;
         background-color: var(--surface);
         color: var(--fg);
     }
@@ -80,7 +99,7 @@
 
     /* The figure already carries the surface and padding; the span inside must not. */
     .article :where(pre code) {
-        @apply block bg-transparent p-0 text-[0.82rem] leading-[1.65];
+        @apply block bg-transparent p-0 text-[0.875rem] leading-[1.65];
     }
 
     /* Shiki emits both palettes per token, so the toggle needs no second render. */

@@ -84,6 +84,7 @@ The pipeline pulls structured and unstructured records through the internal API 
 </svg>
 <figcaption class="diagram-caption">One writer rotates credentials behind a Redis lock. Every other worker waits, then reads.</figcaption>
 </figure>
+
 ## What broke first
 
 Session credentials expire. The first version had each worker refresh them on demand, which was fine with one worker and a disaster with twenty — they all noticed the expiry at once, all refreshed simultaneously, and invalidated each other in a loop that took the integration down. The fix was a Playwright script wrapped in a Celery worker as the single writer, with Redis distributed locks serializing rotation and PostgreSQL holding the state. One worker rotates, the rest wait and read. Session updates became atomic, and the layer now recovers from expired credentials on its own instead of paging someone.

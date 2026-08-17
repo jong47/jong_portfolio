@@ -227,7 +227,7 @@ test.describe('detail pages', () => {
                         el.tagName === 'H1'
                             ? 'title'
                             : (el.className.match(
-                                  /t-meta|t-deck|detail-links|tag-row|metrics|article|t-body/,
+                                  /t-meta|t-deck|detail-links|tag-row|article|t-body/,
                               )?.[0] ?? el.tagName.toLowerCase()),
                     )
                     .join(' '),
@@ -236,11 +236,7 @@ test.describe('detail pages', () => {
             // The header is fixed; only optional blocks may be absent, and the body
             // slot is either compiled markdown or the plain detail paragraph.
             expect(shape, route).toMatch(/^t-meta title t-deck/)
-            shapes.add(
-                shape
-                    .replace(/ (detail-links|metrics)/g, '')
-                    .replace(/t-body$/, 'article'),
-            )
+            shapes.add(shape.replace(/ detail-links/g, '').replace(/t-body$/, 'article'))
         }
 
         expect([...shapes]).toHaveLength(1)
@@ -293,6 +289,67 @@ test.describe('detail pages', () => {
         await expect(page.locator('.article .diagram svg .dg-box').first()).toBeAttached()
         await expect(page.locator('.article > p > rect')).toHaveCount(0)
         await expect(page.locator('.diagram-caption')).toBeVisible()
+    })
+
+    test('markdown never reaches the page as literal text', async ({ page }) => {
+        for (const route of DETAIL_ROUTES) {
+            await page.goto(APP_URL + route, { waitUntil: 'networkidle' })
+
+            // A heading written directly under a closing HTML tag gets swallowed by
+            // the block and rendered verbatim, which nothing else would catch.
+            const literal = await page.evaluate(() =>
+                [...document.querySelectorAll('.article :is(p, li, td, figcaption)')]
+                    .filter((el) => !el.closest('figure.code'))
+                    .map((el) => el.textContent ?? '')
+                    .filter((text) => /^\s*(#{1,6}\s|[-*+]\s|\d+\.\s)/.test(text)),
+            )
+
+            expect(literal, route).toEqual([])
+        }
+    })
+
+    test('long articles carry an outline that tracks the reader', async ({ page }) => {
+        await page.setViewportSize({ width: 1440, height: 900 })
+        await page.goto(`${APP_URL}/systems/document-platform`, {
+            waitUntil: 'networkidle',
+        })
+
+        const links = page.locator('.outline .outline-link')
+        expect(await links.count()).toBe(await page.locator('.article h2').count())
+
+        // Headings are ~30px tall, so tracking must not depend on catching one
+        // inside a narrow band — every section has to be reachable by scrolling.
+        const { heads, line, max } = await page.evaluate(() => ({
+            heads: [...document.querySelectorAll('.article h2')].map((h) => ({
+                id: h.id,
+                y: Math.round(h.getBoundingClientRect().top + window.scrollY),
+            })),
+            line: window.innerHeight * 0.3,
+            max: document.documentElement.scrollHeight - window.innerHeight,
+        }))
+
+        for (const head of heads) {
+            const to = head.y - line + 2
+            if (to > max) continue
+
+            await page.evaluate((y) => window.scrollTo(0, y), to)
+            await expect(page.locator('.outline-on'), head.id).toHaveAttribute(
+                'href',
+                `#${head.id}`,
+            )
+        }
+
+        // The last heading sits inside the final screenful, so scroll cannot bring
+        // it above the line — hitting the bottom is what selects it.
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+        await expect(page.locator('.outline-on')).toHaveAttribute(
+            'href',
+            `#${heads[heads.length - 1].id}`,
+        )
+
+        // Short entries have no article, so there is nothing to outline.
+        await page.goto(`${APP_URL}/projects/woolyquant`, { waitUntil: 'networkidle' })
+        await expect(page.locator('.outline')).toHaveCount(0)
     })
 
     test('back works from the not-found page', async ({ page }) => {
@@ -375,6 +432,21 @@ test.describe('outline', () => {
 })
 
 test.describe('layout', () => {
+    test('no page pushes a phone sideways', async ({ page }) => {
+        await page.setViewportSize({ width: 375, height: 800 })
+
+        for (const route of ['/', '/projects', ...DETAIL_ROUTES]) {
+            await page.goto(APP_URL + route, { waitUntil: 'networkidle' })
+
+            // A long identifier in inline code is the usual culprit; code blocks
+            // and tables scroll inside themselves instead.
+            const over = await page.evaluate(
+                () => document.documentElement.scrollWidth - window.innerWidth,
+            )
+            expect(over, route).toBeLessThanOrEqual(0)
+        }
+    })
+
     test('the dialog fits a phone without causing overflow', async ({ page }) => {
         await page.setViewportSize({ width: 360, height: 720 })
         await page.goto(APP_URL, { waitUntil: 'networkidle' })

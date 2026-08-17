@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react'
 
+/** Where in the viewport a heading counts as the one being read. */
+const LINE = 0.3
+
 /**
- * `enabled` is a dependency, not just a guard. Routing unmounts the sections, so
- * an observer attached on the previous visit would hold detached nodes and freeze
- * on whatever was last active. Toggling forces a fresh attach on the way back.
+ * Reads position on every scroll rather than observing intersections. Article
+ * headings are ~30px tall, so a band an observer could watch is thin enough for
+ * a fast scroll to jump clean over — which left four of seven sections in a case
+ * study permanently unreachable. Measuring the last heading above the line
+ * cannot skip one.
+ *
+ * `enabled` is a dependency, not just a guard: routing unmounts the sections, so
+ * the listener has to be re-attached rather than kept across a visit.
  */
 export function useActiveSection(ids: readonly string[], enabled = true) {
     const [active, setActive] = useState(ids[0])
 
     useEffect(() => {
         if (!enabled) return
-
-        const seen = new Map<string, boolean>()
 
         function update() {
             const bottom =
@@ -23,29 +29,21 @@ export function useActiveSection(ids: readonly string[], enabled = true) {
                 return
             }
 
-            const first = ids.find((id) => seen.get(id))
-            if (first) setActive(first)
+            const line = window.innerHeight * LINE
+            let current = ids[0]
+            for (const id of ids) {
+                const element = document.getElementById(id)
+                if (element && element.getBoundingClientRect().top <= line) current = id
+            }
+            setActive(current)
         }
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                for (const entry of entries) {
-                    seen.set(entry.target.id, entry.isIntersecting)
-                }
-                update()
-            },
-            { rootMargin: '-25% 0px -65% 0px' },
-        )
-
-        for (const id of ids) {
-            const element = document.getElementById(id)
-            if (element) observer.observe(element)
-        }
-
+        update()
         window.addEventListener('scroll', update, { passive: true })
+        window.addEventListener('resize', update)
         return () => {
-            observer.disconnect()
             window.removeEventListener('scroll', update)
+            window.removeEventListener('resize', update)
         }
     }, [ids, enabled])
 
