@@ -1,41 +1,62 @@
 import os
-from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-# Mirrors --mode on the web side. Exactly one file, named explicitly: reading
-# several and letting the last win would let a stray .env.prod quietly outrank
-# local config. Deployments set real process env and read no file at all.
+RUNTIME_ENV = "lambda"
 APP_ENV = os.getenv("APP_ENV", "staging")
+ENV_FILE = f".env.{APP_ENV}"
+
+REQUIRED = (
+    "contact_email",
+    "ses_sender",
+    "allowed_origins",
+    "aws_region",
+    "bedrock_region",
+    "bedrock_model_id",
+)
+OPTIONAL_SECRETS = ("guardrail_id", "turnstile_secret")
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=f".env.{APP_ENV}", extra="ignore")
+    model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
-    # Where messages land, and the SES-verified identity they are sent from. In the
-    # SES sandbox both must be verified, which is fine when they are the same person.
     contact_email: str = Field(min_length=1)
     ses_sender: str = Field(min_length=1)
+    allowed_origins: Annotated[list[str], NoDecode] = Field(min_length=1)
 
-    # NoDecode: without it pydantic-settings json-parses the value before the
-    # validator below ever sees the comma-separated form.
-    allowed_origins: Annotated[list[str], NoDecode] = []
-
-    aws_region: str = "us-west-1"
-    # Left unset in production, where an instance role supplies them instead.
+    aws_region: str = Field(min_length=1)
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
+    aws_session_token: str | None = None
 
-    # Long enough to say something real, short enough to bound an abusive payload.
-    max_message: int = 4000
+    bedrock_region: str = Field(min_length=1)
+    bedrock_model_id: str = Field(min_length=1)
+    guardrail_id: str | None = None
+    guardrail_version: str = "DRAFT"
 
-    # A question longer than this is not a question.
+    turnstile_secret: str | None = None
+
     max_query: int = 1000
-    # Requests per window, per client. Held in one process — see SlidingWindow.
-    chat_rate_limit: int = 10
-    chat_rate_window: int = 60
+    max_posting: int = 6000
+    max_message: int = 4000
+    max_output_tokens: int = 3000
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_every_value(cls, values: Any) -> Any:
+        if not isinstance(values, dict):
+            return values
+
+        missing = [name for name in REQUIRED if not values.get(name)]
+        if missing:
+            raise ValueError(
+                f"missing configuration: {', '.join(n.upper() for n in missing)}. "
+                f"APP_ENV={APP_ENV} reads {ENV_FILE}; APP_ENV={RUNTIME_ENV} reads the "
+                f"process environment instead."
+            )
+        return values
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
@@ -44,7 +65,11 @@ class Settings(BaseSettings):
             return value
         return [origin.strip() for origin in value.split(",") if origin.strip()]
 
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()  # pyright: ignore[reportCallIssue] - values come from the env
+    @field_validator(*OPTIONAL_SECRETS, mode="before")
+    @classmethod
+    def reject_blank(cls, value: str | None) -> str | None:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError(
+                "blank is not a value: unset the variable entirely to disable it"
+            )
+        return value

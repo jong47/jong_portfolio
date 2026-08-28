@@ -33,6 +33,8 @@ __pycache__
 *.py[cod]
 .pytest_cache
 .ruff_cache
+.aws-sam
+**/_deprecated/**
 
 # Secrets
 .env.staging

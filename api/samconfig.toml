@@ -1,0 +1,12 @@
+version = 0.1
+
+[default.global.parameters]
+stack_name = "portfolio-api"
+
+[default.build.parameters]
+use_container = false
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true

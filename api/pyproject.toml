@@ -10,11 +10,11 @@ dependencies = [
     "fastapi>=0.141.1",
     "pydantic-settings>=2.15.0",
     "pydantic[email]>=2.13.4",
-    "uvicorn[standard]>=0.52.3",
+    "uvicorn>=0.52.3",
 ]
 
 [project.scripts]
-serve = "portfolio_api.main:serve"
+serve = "portfolio_api.app:serve"
 
 [build-system]
 requires = ["uv_build>=0.9.18,<0.10.0"]
@@ -22,17 +22,13 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    # Not imported by any test directly — starlette's TestClient requires it at
-    # import time, and neither fastapi nor starlette pulls it in transitively.
-    "httpx>=0.28.1",
+    "httpx2>=2.12.0",
     "pytest>=9.1.1",
-    "pytest-asyncio>=1.4.0",
     "ruff>=0.16.3",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 90

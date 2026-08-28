@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from portfolio_api import main
+from portfolio_api import routes as module
 
 BODY = {
     "name": "Dana",
@@ -12,13 +12,12 @@ BODY = {
 
 @pytest.fixture
 def sent(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str, str]]:
-    """Captures what would have gone to SES instead of sending it."""
     calls: list[tuple[str, str, str]] = []
 
     def record(_settings: object, name: str, sender: str, message: str) -> None:
         calls.append((name, sender, message))
 
-    monkeypatch.setattr(main, "send", record)
+    monkeypatch.setattr(module, "send_mail", record)
     return calls
 
 
@@ -27,6 +26,10 @@ def test_accepts_a_message(client: TestClient, sent: list[tuple[str, str, str]])
 
     assert response.status_code == 204
     assert sent == [("Dana", "dana@example.com", "Are you free to talk next week?")]
+
+
+def test_returns_no_body(client: TestClient, sent: list[tuple[str, str, str]]):
+    assert client.post("/contact", json=BODY).text == ""
 
 
 def test_rejects_a_malformed_address(
@@ -48,7 +51,9 @@ def test_rejects_an_empty_field(
     assert sent == []
 
 
-def test_caps_an_oversized_message(client: TestClient, sent: list[tuple[str, str, str]]):
+def test_rejects_an_oversized_message(
+    client: TestClient, sent: list[tuple[str, str, str]]
+):
     response = client.post("/contact", json={**BODY, "message": "x" * 9000})
 
     assert response.status_code == 422
@@ -58,10 +63,6 @@ def test_caps_an_oversized_message(client: TestClient, sent: list[tuple[str, str
 def test_ignores_an_unexpected_field(
     client: TestClient, sent: list[tuple[str, str, str]]
 ):
-    """
-    The model does not forbid extras, which is what lets a stale client keep posting
-    a leftover captcha token without every submit turning into a 422.
-    """
     response = client.post("/contact", json={**BODY, "token": "leftover"})
 
     assert response.status_code == 204
@@ -71,7 +72,6 @@ def test_ignores_an_unexpected_field(
 def test_never_discloses_the_destination(
     client: TestClient, sent: list[tuple[str, str, str]]
 ):
-    """The whole point of the form: the address is a destination, never a response."""
     response = client.post("/contact", json=BODY)
 
     assert "inbox@example.com" not in response.text

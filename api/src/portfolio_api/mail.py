@@ -6,30 +6,23 @@ from .config import Settings
 
 
 @lru_cache
-def _client(region: str, key_id: str | None, secret: str | None):
-    """Passing None for both falls back to the ambient credential chain, which is
-    what an instance role or AWS_PROFILE provides in production."""
+def _ses(region: str, key_id: str | None, secret: str | None, token: str | None):
     return boto3.client(
         "ses",
         region_name=region,
         aws_access_key_id=key_id,
         aws_secret_access_key=secret,
+        aws_session_token=token,
     )
 
 
-def send(settings: Settings, name: str, sender: str, message: str) -> None:
-    """
-    Sends from the verified SES identity, never from the visitor's address — SES
-    would reject that, and it would be a spoof besides. Reply-To carries the
-    visitor instead, so replying from the inbox reaches the right person.
-    """
-    client = _client(
+def send_mail(settings: Settings, name: str, sender: str, message: str) -> None:
+    _ses(
         settings.aws_region,
         settings.aws_access_key_id,
         settings.aws_secret_access_key,
-    )
-
-    client.send_email(
+        settings.aws_session_token,
+    ).send_email(
         Source=settings.ses_sender,
         Destination={"ToAddresses": [settings.contact_email]},
         ReplyToAddresses=[sender],

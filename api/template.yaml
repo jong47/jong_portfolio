@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Streaming retrieval chatbot and contact form for the portfolio site.
+
+Parameters:
+    ContactEmail:
+        Type: String
+        Description: Where contact-form messages land. SES-verified in the sandbox.
+    SesSender:
+        Type: String
+        Description: The SES-verified identity messages are sent FROM.
+    AllowedOrigins:
+        Type: String
+        Default: http://localhost:5173
+        Description: Comma-separated CORS allowlist. No wildcard.
+    BedrockRegion:
+        Type: String
+        Default: us-west-2
+        Description: >-
+            Endpoint region for Bedrock. Oregon has the lowest grid carbon
+            intensity of the three regions the US inference profile routes to.
+    BedrockModelId:
+        Type: String
+        Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
+        Description: >-
+            Cross-region inference profile. Claude Haiku 4.5 has no on-demand
+            throughput, so the bare foundation-model id will not invoke.
+    GuardrailId:
+        Type: String
+        Default: ''
+        Description: Optional. Empty disables the guardrail check.
+    GuardrailVersion:
+        Type: String
+        Default: DRAFT
+    TurnstileSecret:
+        Type: String
+        Default: ''
+        NoEcho: true
+        Description: Optional. Empty skips captcha verification.
+    LwaLayerVersion:
+        Type: String
+        Default: '28'
+        Description: Lambda Web Adapter layer version. Check the LWA release notes.
+
+Conditions:
+    HasGuardrail: !Not [!Equals [!Ref GuardrailId, '']]
+    HasTurnstile: !Not [!Equals [!Ref TurnstileSecret, '']]
+
+Globals:
+    Function:
+        Runtime: python3.13
+        Architectures: [arm64]
+        MemorySize: 512
+        Timeout: 60
+        Environment:
+            Variables:
+                APP_ENV: lambda
+                CONTACT_EMAIL: !Ref ContactEmail
+                SES_SENDER: !Ref SesSender
+                ALLOWED_ORIGINS: !Ref AllowedOrigins
+                BEDROCK_REGION: !Ref BedrockRegion
+                BEDROCK_MODEL_ID: !Ref BedrockModelId
+                GUARDRAIL_VERSION: !Ref GuardrailVersion
+                GUARDRAIL_ID: !If [HasGuardrail, !Ref GuardrailId, !Ref 'AWS::NoValue']
+                TURNSTILE_SECRET:
+                    !If [HasTurnstile, !Ref TurnstileSecret, !Ref 'AWS::NoValue']
+                AWS_LAMBDA_EXEC_WRAPPER: /opt/bootstrap
+                AWS_LWA_INVOKE_MODE: response_stream
+                AWS_LWA_PORT: '8000'
+                AWS_LWA_REMOVE_BASE_PATH: /live
+
+Resources:
+    Api:
+        Type: AWS::Serverless::Api
+        Properties:
+            StageName: live
+            EndpointConfiguration:
+                Type: REGIONAL
+            MethodSettings:
+                - ResourcePath: /chat
+                  HttpMethod: POST
+                  ThrottlingRateLimit: 5
+                  ThrottlingBurstLimit: 10
+                - ResourcePath: /contact
+                  HttpMethod: POST
+                  ThrottlingRateLimit: 1
+                  ThrottlingBurstLimit: 3
+            DefinitionBody:
+                openapi: 3.0.1
+                info:
+                    title: portfolio-api
+                    version: '1.0'
+                paths:
+                    /chat:
+                        post:
+                            responses: {}
+                            x-amazon-apigateway-integration:
+                                type: aws_proxy
+                                httpMethod: POST
+                                payloadFormatVersion: '1.0'
+                                responseTransferMode: STREAM
+                                uri: !Sub >-
+                                    arn:aws:apigateway:${AWS::Region}:lambda:path/2021-11-15/functions/${ApiFunction.Arn}/response-streaming-invocations
+                        options:
+                            responses: {}
+                            x-amazon-apigateway-integration:
+                                type: aws_proxy
+                                httpMethod: POST
+                                payloadFormatVersion: '1.0'
+                                uri: !Sub >-
+                                    arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+                    /contact:
+                        post:
+                            responses: {}
+                            x-amazon-apigateway-integration:
+                                type: aws_proxy
+                                httpMethod: POST
+                                payloadFormatVersion: '1.0'
+                                uri: !Sub >-
+                                    arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+                        options:
+                            responses: {}
+                            x-amazon-apigateway-integration:
+                                type: aws_proxy
+                                httpMethod: POST
+                                payloadFormatVersion: '1.0'
+                                uri: !Sub >-
+                                    arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+
+    ApiFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            FunctionName: portfolio-api
+            CodeUri: .
+            Handler: run.sh
+            Description: FastAPI under the Lambda Web Adapter, streaming from Bedrock.
+            ReservedConcurrentExecutions: 10
+            Layers:
+                - !Sub arn:aws:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerArm64:${LwaLayerVersion}
+            Policies:
+                - Statement:
+                      - Effect: Allow
+                        Action: ses:SendEmail
+                        Resource: '*'
+                      - Effect: Allow
+                        Action:
+                            - bedrock:InvokeModelWithResponseStream
+                            - bedrock:InvokeModel
+                        Resource:
+                            - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockModelId}
+                            - arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-*
+                            - arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-*
+                            - arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-*
+                - !If
+                  - HasGuardrail
+                  - Statement:
+                        - Effect: Allow
+                          Action: bedrock:ApplyGuardrail
+                          Resource: !Sub arn:aws:bedrock:${BedrockRegion}:${AWS::AccountId}:guardrail/${GuardrailId}
+                  - !Ref AWS::NoValue
+        Metadata:
+            BuildMethod: makefile
+
+Outputs:
+    ChatUrl:
+        Description: What VITE_CHAT_API_URL points at.
+        Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/live/chat
+    ContactUrl:
+        Description: What VITE_CONTACT_API_URL points at.
+        Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/live/contact
