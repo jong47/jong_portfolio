@@ -140,10 +140,16 @@ and the function timeout, not the visitor's patience.
 
 ## Deploy
 
+The template lives in [`../infra/api/`](../infra/README.md), alongside the site hosting
+and account bootstrap stacks, and a push to `main` deploys it. To drive it by hand:
+
 ```sh
+cd ../infra/api
 sam build
 sam deploy --guided
 ```
+
+`make validate` from this directory lints that template without leaving the api.
 
 Zip packaged, `arm64`, `python3.13`, with the Lambda Web Adapter attached as a public
 layer. `Handler` is `run.sh` — under the adapter that field names a startup script, not

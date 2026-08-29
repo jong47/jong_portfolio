@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+    One-time account setup: the trust relationship that lets GitHub Actions deploy
+    without stored AWS keys, the ceiling on what it can grant itself, and a spend
+    alarm. Deployed by hand with admin credentials, never by the pipeline.
+
+Parameters:
+    GitHubRepository:
+        Type: String
+        Default: jong47/jong_portfolio
+        Description: owner/name. Only workflow runs in this repository can assume the role.
+    DeployEnvironment:
+        Type: String
+        Default: prod
+        Description: >-
+            The GitHub environment the deploy job declares. GitHub puts it in the
+            token's sub claim, so this is what binds the role to that one job.
+            Restrict the environment to the main branch in GitHub — that setting,
+            not this template, is what makes it main-only.
+    AlertEmail:
+        Type: String
+        NoEcho: true
+        Description: Where budget warnings go.
+    MonthlyBudgetUsd:
+        Type: Number
+        Default: 10
+        Description: The whole design should sit near zero. This is the backstop.
+    CreateOidcProvider:
+        Type: String
+        Default: 'true'
+        AllowedValues: ['true', 'false']
+        Description: >-
+            Set false if this account already federates GitHub Actions for another
+            repository — an account holds only one provider per issuer, and a
+            second one fails the stack.
+
+Conditions:
+    NeedsOidcProvider: !Equals [!Ref CreateOidcProvider, 'true']
+
+Resources:
+    GitHubOidcProvider:
+        Type: AWS::IAM::OIDCProvider
+        Condition: NeedsOidcProvider
+        Properties:
+            Url: https://token.actions.githubusercontent.com
+            ClientIdList:
+                - sts.amazonaws.com
+            ThumbprintList:
+                - 6938fd4d98bab03faadb97b34396831e3780aea1
+                - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+    FunctionBoundary:
+        Type: AWS::IAM::ManagedPolicy
+        Properties:
+            ManagedPolicyName: portfolio-boundary
+            Description: >-
+                Permissions boundary for every role the pipeline creates. A boundary
+                is an intersection, not a grant: the api template scopes Bedrock down
+                to specific model ARNs on top of this, and SES to the send action.
+                This is the ceiling a future edit to that template cannot exceed.
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Sid: SendContactMail
+                      Effect: Allow
+                      Action:
+                          - ses:SendEmail
+                          - ses:SendRawEmail
+                      Resource: '*'
+                    - Sid: CallTheModel
+                      Effect: Allow
+                      Action:
+                          - bedrock:InvokeModel
+                          - bedrock:InvokeModelWithResponseStream
+                          - bedrock:ApplyGuardrail
+                      Resource: '*'
+                    - Sid: WriteItsOwnLogs
+                      Effect: Allow
+                      Action:
+                          - logs:CreateLogGroup
+                          - logs:CreateLogStream
+                          - logs:PutLogEvents
+                      Resource: '*'
+
+    DeployRole:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: portfolio-deploy
+            Description: Assumed by GitHub Actions over OIDC. Holds no long-lived credentials.
+            MaxSessionDuration: 3600
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Federated: !If
+                              - NeedsOidcProvider
+                              - !Ref GitHubOidcProvider
+                              - !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+                      Action: sts:AssumeRoleWithWebIdentity
+                      Condition:
+                          StringEquals:
+                              token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                              token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepository}:environment:${DeployEnvironment}
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/PowerUserAccess
+            Policies:
+                - PolicyName: create-portfolio-roles-under-the-boundary
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Sid: NewRolesMustCarryTheBoundary
+                            Effect: Allow
+                            Action:
+                                - iam:CreateRole
+                                - iam:PutRolePermissionsBoundary
+                            Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/portfolio-*
+                            Condition:
+                                StringEquals:
+                                    iam:PermissionsBoundary: !Ref FunctionBoundary
+                          - Sid: ManageThoseRolesOtherwise
+                            Effect: Allow
+                            Action:
+                                - iam:GetRole
+                                - iam:GetRolePolicy
+                                - iam:ListRolePolicies
+                                - iam:ListAttachedRolePolicies
+                                - iam:ListRoleTags
+                                - iam:PutRolePolicy
+                                - iam:DeleteRolePolicy
+                                - iam:AttachRolePolicy
+                                - iam:DetachRolePolicy
+                                - iam:TagRole
+                                - iam:UntagRole
+                                - iam:UpdateAssumeRolePolicy
+                                - iam:DeleteRole
+                                - iam:PassRole
+                            Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/portfolio-*
+                          - Sid: NeverItselfAndNeverTheCeiling
+                            Effect: Deny
+                            Action: iam:*
+                            Resource:
+                                - !Sub arn:aws:iam::${AWS::AccountId}:role/portfolio-deploy
+                                - !Ref FunctionBoundary
+                          - Sid: NeverTheStackThatGrantsIt
+                            Effect: Deny
+                            Action:
+                                - cloudformation:CreateStack
+                                - cloudformation:UpdateStack
+                                - cloudformation:DeleteStack
+                                - cloudformation:CreateChangeSet
+                                - cloudformation:ExecuteChangeSet
+                                - cloudformation:SetStackPolicy
+                                - cloudformation:UpdateTerminationProtection
+                            Resource: !Sub arn:aws:cloudformation:*:${AWS::AccountId}:stack/portfolio-bootstrap/*
+                          - Sid: NeverTheSpendGuard
+                            Effect: Deny
+                            Action: budgets:ModifyBudget
+                            Resource: '*'
+
+    Budget:
+        Type: AWS::Budgets::Budget
+        Properties:
+            Budget:
+                BudgetName: portfolio
+                BudgetType: COST
+                TimeUnit: MONTHLY
+                BudgetLimit:
+                    Amount: !Ref MonthlyBudgetUsd
+                    Unit: USD
+            NotificationsWithSubscribers:
+                - Notification:
+                      NotificationType: ACTUAL
+                      ComparisonOperator: GREATER_THAN
+                      Threshold: 20
+                      ThresholdType: PERCENTAGE
+                  Subscribers:
+                      - SubscriptionType: EMAIL
+                        Address: !Ref AlertEmail
+                - Notification:
+                      NotificationType: ACTUAL
+                      ComparisonOperator: GREATER_THAN
+                      Threshold: 80
+                      ThresholdType: PERCENTAGE
+                  Subscribers:
+                      - SubscriptionType: EMAIL
+                        Address: !Ref AlertEmail
+                - Notification:
+                      NotificationType: FORECASTED
+                      ComparisonOperator: GREATER_THAN
+                      Threshold: 100
+                      ThresholdType: PERCENTAGE
+                  Subscribers:
+                      - SubscriptionType: EMAIL
+                        Address: !Ref AlertEmail
+
+Outputs:
+    DeployRoleArn:
+        Description: What the pipeline assumes. Set as the AWS_DEPLOY_ROLE variable.
+        Value: !GetAtt DeployRole.Arn
+    FunctionBoundaryArn:
+        Description: Passed to the api stack as PermissionsBoundaryArn.
+        Value: !Ref FunctionBoundary
