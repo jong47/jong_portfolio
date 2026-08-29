@@ -145,6 +145,38 @@ profile.
 
 Nothing deploys from uncommitted work, or from `staging`.
 
+## Tearing it all down
+
+Deleting a stack deletes everything in it, so three commands remove almost all of
+this. **Order matters** — `portfolio-boundary` is attached to the api's execution role
+as a permissions boundary, and a managed policy in use cannot be deleted:
+
+```sh
+aws cloudformation delete-stack --region us-west-1 --stack-name portfolio-api
+aws cloudformation wait stack-delete-complete --region us-west-1 --stack-name portfolio-api
+
+aws cloudformation delete-stack --region us-east-1 --stack-name portfolio-web
+aws cloudformation wait stack-delete-complete --region us-east-1 --stack-name portfolio-web
+
+aws cloudformation delete-stack --region us-east-1 --stack-name portfolio-bootstrap
+```
+
+Four things do not go with them:
+
+- **The site bucket and its contents.** `DeletionPolicy: Retain`, so the stack delete
+  leaves it. Empty it and delete it by hand when you actually want it gone.
+- **SAM's managed artifact bucket**, in its own `aws-sam-cli-managed-default` stack that
+  SAM created on the first deploy. Empty it — it is versioned, so delete versions too —
+  then delete that stack.
+- **The Turnstile and Bedrock settings**, which live in Cloudflare and the Bedrock
+  console rather than in any template.
+- **The DNS records** at the registrar, which now point at a distribution that no
+  longer exists.
+
+The web stack takes 15–20 minutes: CloudFront has to disable the distribution before it
+can delete it. Nothing here runs in a VPC, so there are no orphaned NAT gateways,
+addresses or interfaces to hunt down afterwards.
+
 ## Security
 
 Threat model is STRIDE, taken over the boundary between a public repository, the Actions
