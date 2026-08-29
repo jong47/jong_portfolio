@@ -20,7 +20,7 @@ build-ApiFunction:
 	rm -rf $(ARTIFACTS_DIR)/boto3-*.dist-info $(ARTIFACTS_DIR)/botocore-*.dist-info
 
 validate:
-	$(LOCAL_AWS) sam validate --lint
+	$(LOCAL_AWS) sam validate --lint -t ../infra/api/template.yaml
 
 test:
 	uv run pytest -q

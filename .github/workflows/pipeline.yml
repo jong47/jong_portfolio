@@ -1,0 +1,246 @@
+name: pipeline
+
+on:
+    pull_request:
+    push:
+        branches: [main, staging]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+    API_REGION: us-west-1
+    WEB_REGION: us-east-1
+    BOOTSTRAP_REGION: us-east-1
+    API_STACK: portfolio-api
+    WEB_STACK: portfolio-web
+    BOOTSTRAP_STACK: portfolio-bootstrap
+    SAM_VERSION: 1.165.0
+
+jobs:
+    api-checks:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        defaults:
+            run:
+                working-directory: api
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+              with:
+                  enable-cache: true
+                  cache-dependency-glob: api/uv.lock
+
+            - name: Install
+              run: uv sync --frozen
+
+            - name: Tests, lint and format
+              run: make test
+
+            - name: Install SAM
+              run: |
+                  uv tool install "aws-sam-cli==$SAM_VERSION"
+                  echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+            - name: Validate the api template
+              run: make validate
+
+            - name: Package the api
+              working-directory: infra/api
+              run: sam build
+
+    web-checks:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        permissions:
+            contents: read
+        defaults:
+            run:
+                working-directory: web
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: web/package-lock.json
+
+            - name: Install
+              run: npm ci
+
+            - name: Types, lint and format
+              run: npm run check
+
+            - name: Unit tests
+              run: npx vp test --passWithNoTests
+
+            - name: Browsers
+              run: npx playwright install --with-deps chromium
+
+            - name: End-to-end tests
+              run: npm run test:e2e
+
+            - name: Build
+              env:
+                  VITE_CONTACT_API_URL: https://checks.invalid
+                  VITE_CHAT_API_URL: https://checks.invalid/chat
+              run: npm run build
+
+    deploy:
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        needs: [api-checks, web-checks]
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        environment:
+            name: prod
+            url: https://${{ vars.SITE_DOMAIN }}
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+              with:
+                  enable-cache: true
+                  cache-dependency-glob: api/uv.lock
+
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: web/package-lock.json
+
+            - name: Install SAM
+              run: |
+                  uv tool install "aws-sam-cli==$SAM_VERSION"
+                  echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+            - name: Install the site's dependencies
+              working-directory: web
+              run: npm ci
+
+            - name: Require every deploy secret
+              env:
+                  CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+                  SES_SENDER: ${{ secrets.SES_SENDER }}
+                  SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
+                  ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+              run: |
+                  missing=()
+                  for name in CONTACT_EMAIL SES_SENDER SITE_DOMAIN ACCOUNT_ID; do
+                      [ -n "${!name}" ] || missing+=("$name")
+                  done
+                  if [ ${#missing[@]} -gt 0 ]; then
+                      echo "unset in the prod environment: ${missing[*]}" >&2
+                      exit 1
+                  fi
+
+            - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+              with:
+                  role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/portfolio-deploy
+                  role-session-name: pipeline-${{ github.run_id }}
+                  aws-region: ${{ env.API_REGION }}
+
+            - name: Site hosting stack
+              env:
+                  SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
+              run: |
+                  aws cloudformation deploy \
+                      --region "$WEB_REGION" \
+                      --stack-name "$WEB_STACK" \
+                      --template-file infra/web/template.yaml \
+                      --no-fail-on-empty-changeset \
+                      --parameter-overrides "DomainName=$SITE_DOMAIN"
+
+            - name: Api stack
+              working-directory: infra/api
+              env:
+                  CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+                  SES_SENDER: ${{ secrets.SES_SENDER }}
+                  TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+                  SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
+              run: |
+                  boundary=$(aws cloudformation describe-stacks \
+                      --region "$BOOTSTRAP_REGION" \
+                      --stack-name "$BOOTSTRAP_STACK" \
+                      --query "Stacks[0].Outputs[?OutputKey=='FunctionBoundaryArn'].OutputValue" \
+                      --output text)
+                  if [ -z "$boundary" ]; then
+                      echo "no FunctionBoundaryArn output on $BOOTSTRAP_STACK — deploy the bootstrap stack first" >&2
+                      exit 1
+                  fi
+
+                  params=(
+                      "ContactEmail=$CONTACT_EMAIL"
+                      "SesSender=$SES_SENDER"
+                      "AllowedOrigins=https://$SITE_DOMAIN,https://www.$SITE_DOMAIN"
+                      "PermissionsBoundaryArn=$boundary"
+                  )
+                  if [ -n "$TURNSTILE_SECRET" ]; then
+                      params+=("TurnstileSecret=$TURNSTILE_SECRET")
+                  fi
+
+                  sam build
+                  sam deploy \
+                      --no-confirm-changeset \
+                      --no-fail-on-empty-changeset \
+                      --parameter-overrides "${params[@]}"
+
+            - name: Build the site against the deployed api
+              working-directory: web
+              env:
+                  VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+              run: |
+                  base=$(aws cloudformation describe-stacks \
+                      --region "$API_REGION" \
+                      --stack-name "$API_STACK" \
+                      --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" \
+                      --output text)
+                  case "$base" in
+                      https://*) ;;
+                      *) echo "ApiBaseUrl came back as '$base'" >&2; exit 1 ;;
+                  esac
+                  VITE_CONTACT_API_URL="$base" VITE_CHAT_API_URL="$base/chat" npm run build
+
+            - name: Publish
+              run: |
+                  bucket=$(aws cloudformation describe-stacks \
+                      --region "$WEB_REGION" \
+                      --stack-name "$WEB_STACK" \
+                      --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
+                      --output text)
+                  distribution=$(aws cloudformation describe-stacks \
+                      --region "$WEB_REGION" \
+                      --stack-name "$WEB_STACK" \
+                      --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" \
+                      --output text)
+                  for pair in "bucket=$bucket" "distribution=$distribution"; do
+                      case "${pair#*=}" in
+                          ''|None) echo "${pair%%=*} missing from $WEB_STACK outputs" >&2; exit 1 ;;
+                      esac
+                  done
+
+                  aws s3 sync web/dist/assets "s3://$bucket/assets" \
+                      --cache-control 'public,max-age=31536000,immutable'
+                  aws s3 sync web/dist "s3://$bucket" \
+                      --exclude 'assets/*' \
+                      --cache-control 'no-cache' \
+                      --delete
+                  aws cloudfront create-invalidation \
+                      --distribution-id "$distribution" \
+                      --paths '/*'

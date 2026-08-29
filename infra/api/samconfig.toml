@@ -2,11 +2,20 @@ version = 0.1
 
 [default.global.parameters]
 stack_name = "portfolio-api"
+region = "us-west-1"
 
 [default.build.parameters]
 use_container = false
 cached = true
 parallel = true
+
+[default.package.parameters]
+resolve_s3 = true
+
+[default.deploy.parameters]
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
+no_fail_on_empty_changeset = true
 
 [default.validate.parameters]
 lint = true

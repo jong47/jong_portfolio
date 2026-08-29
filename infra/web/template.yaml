@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+    Static hosting for the portfolio site: a private bucket reachable only through
+    CloudFront. Deploy to us-east-1 — CloudFront only accepts ACM certificates
+    issued there. The bucket's own region is irrelevant behind the CDN.
+
+Parameters:
+    DomainName:
+        Type: String
+        Description: >-
+            Apex domain, e.g. example.dev. The www host is added as a certificate
+            SAN and a distribution alias, so both names serve the site.
+
+Resources:
+    SiteBucket:
+        Type: AWS::S3::Bucket
+        DeletionPolicy: Retain
+        UpdateReplacePolicy: Retain
+        Properties:
+            BucketEncryption:
+                ServerSideEncryptionConfiguration:
+                    - ServerSideEncryptionByDefault:
+                          SSEAlgorithm: AES256
+            OwnershipControls:
+                Rules:
+                    - ObjectOwnership: BucketOwnerEnforced
+            PublicAccessBlockConfiguration:
+                BlockPublicAcls: true
+                BlockPublicPolicy: true
+                IgnorePublicAcls: true
+                RestrictPublicBuckets: true
+
+    OriginAccessControl:
+        Type: AWS::CloudFront::OriginAccessControl
+        Properties:
+            OriginAccessControlConfig:
+                Name: !Sub ${AWS::StackName}-site-origin
+                OriginAccessControlOriginType: s3
+                SigningBehavior: always
+                SigningProtocol: sigv4
+
+    SiteBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+            Bucket: !Ref SiteBucket
+            PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Sid: ReadOnlyThroughThisDistribution
+                      Effect: Allow
+                      Principal:
+                          Service: cloudfront.amazonaws.com
+                      Action: s3:GetObject
+                      Resource: !Sub ${SiteBucket.Arn}/*
+                      Condition:
+                          StringEquals:
+                              AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+
+    Certificate:
+        Type: AWS::CertificateManager::Certificate
+        Properties:
+            DomainName: !Ref DomainName
+            SubjectAlternativeNames:
+                - !Sub www.${DomainName}
+            ValidationMethod: DNS
+
+    SecurityHeaders:
+        Type: AWS::CloudFront::ResponseHeadersPolicy
+        Properties:
+            ResponseHeadersPolicyConfig:
+                Name: !Sub ${AWS::StackName}-security-headers
+                Comment: No CSP yet — see the Content-Security-Policy note in infra/README.
+                SecurityHeadersConfig:
+                    StrictTransportSecurity:
+                        AccessControlMaxAgeSec: 31536000
+                        IncludeSubdomains: true
+                        Override: true
+                    ContentTypeOptions:
+                        Override: true
+                    FrameOptions:
+                        FrameOption: DENY
+                        Override: true
+                    ReferrerPolicy:
+                        ReferrerPolicy: strict-origin-when-cross-origin
+                        Override: true
+
+    Distribution:
+        Type: AWS::CloudFront::Distribution
+        Properties:
+            DistributionConfig:
+                Enabled: true
+                Comment: !Ref DomainName
+                Aliases:
+                    - !Ref DomainName
+                    - !Sub www.${DomainName}
+                DefaultRootObject: index.html
+                HttpVersion: http2and3
+                IPV6Enabled: true
+                PriceClass: PriceClass_100
+                Origins:
+                    - Id: site
+                      DomainName: !GetAtt SiteBucket.RegionalDomainName
+                      OriginAccessControlId: !GetAtt OriginAccessControl.Id
+                      S3OriginConfig:
+                          OriginAccessIdentity: ''
+                DefaultCacheBehavior:
+                    TargetOriginId: site
+                    ViewerProtocolPolicy: redirect-to-https
+                    Compress: true
+                    AllowedMethods: [GET, HEAD]
+                    CachedMethods: [GET, HEAD]
+                    CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+                    ResponseHeadersPolicyId: !Ref SecurityHeaders
+                CustomErrorResponses:
+                    - ErrorCode: 403
+                      ResponseCode: 200
+                      ResponsePagePath: /index.html
+                      ErrorCachingMinTTL: 0
+                    - ErrorCode: 404
+                      ResponseCode: 200
+                      ResponsePagePath: /index.html
+                      ErrorCachingMinTTL: 0
+                ViewerCertificate:
+                    AcmCertificateArn: !Ref Certificate
+                    MinimumProtocolVersion: TLSv1.2_2021
+                    SslSupportMethod: sni-only
+
+Outputs:
+    BucketName:
+        Description: Upload target for the built site.
+        Value: !Ref SiteBucket
+    DistributionId:
+        Description: What the pipeline invalidates after each upload.
+        Value: !Ref Distribution
+    DistributionDomainName:
+        Description: Point the registrar's CNAME records here.
+        Value: !GetAtt Distribution.DomainName
+    CertificateArn:
+        Description: Its DNS validation record is shown in the ACM console.
+        Value: !Ref Certificate
